@@ -6,17 +6,19 @@ Server::Server(int port) : _acceptor(_service, ip::tcp::endpoint(ip::tcp::v4(), 
 }
 
 void Server::start() {
-	_service.run();
 	accept_client();
+	_service.run();
 }
 
 void Server::accept_client() {
-	ClientConnection::ptr client = ClientConnection::new_(_service, this->shared_from_this());
+	std::cout << "Waiting for client..." << std::endl;
+	ClientConnection::ptr client = ClientConnection::new_(_service, shared_from_this());
 	_clients.push_back(client);
-	_acceptor.async_accept(client->sock(), boost::bind(&Server::on_accept, this, client, _1));
+	_acceptor.async_accept(client->sock(), boost::bind(&Server::on_accept, shared_from_this(), client, _1));
 }
 
 void Server::on_accept(ClientConnection::ptr client, const boost::system::error_code & err) {
+	std::cout << "Client accepted!" << std::endl;
 	client->start();
 	accept_client();
 }

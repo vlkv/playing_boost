@@ -6,6 +6,7 @@
 #include <list>
 
 using namespace boost::asio;
+using namespace std;
 
 class Server : public boost::enable_shared_from_this<Server> {
 	io_service _service;

@@ -1,6 +1,7 @@
 #include "client_connection.h"
 #include "server.h"
 
+
 ClientConnection::ClientConnection(boost::asio::io_service& service, Server::ptr server) : _sock(service), _started(false), _server(server) {
 }
 
@@ -10,6 +11,7 @@ ClientConnection::ptr ClientConnection::new_(boost::asio::io_service& service, S
 }
 
 void ClientConnection::start() {
+	_started = true;
 	do_read();
 }
 
@@ -23,7 +25,8 @@ void ClientConnection::on_read(const boost::system::error_code & err, size_t byt
 	if (err) stop();
 	if (!started()) return;
 	std::string msg(_read_buffer, bytes);
-	// TODO: process msg
+	// TODO: convert msg to int, pass it to the server and take from server the average of squares, then, send the average to the client back...
+	std::cout << "Received a msg: " << msg << std::endl;
 }
 
 void ClientConnection::on_write(const boost::system::error_code & err, size_t bytes) {

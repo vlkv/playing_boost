@@ -3,9 +3,10 @@
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
-//#include "server.h"
+#include <iostream>
 
 using namespace boost::asio;
+using namespace std;
 
 // TODO: remove macroses
 #define MEM_FN(x)       boost::bind(&self_type::x, shared_from_this())
