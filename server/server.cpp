@@ -1,14 +1,38 @@
 #include "server.h"
 #include "client_connection.h"
-#include <boost/make_shared.hpp>
+#include <fstream>
 
-
-Server::Server(int port) : _acceptor(_service, ip::tcp::endpoint(ip::tcp::v4(), port)) {
+Server::Server(int port, int dump_interval_sec, std::string dump_filename) :
+	_acceptor(_service, ip::tcp::endpoint(ip::tcp::v4(), port)), 
+	_dump_interval_sec(dump_interval_sec),
+	_dump_filename(dump_filename),
+	_tree_dumper(boost::thread(boost::bind(&Server::dump_tree, this))) {
 }
 
 void Server::start() {
 	accept_client();
 	_service.run();
+}
+
+void Server::dump_tree() {
+	while (true) {
+		boost::posix_time::seconds dump_interval_sec(_dump_interval_sec);
+		boost::this_thread::sleep(dump_interval_sec);
+
+		_mutex.lock();
+		std::fstream ofile(_dump_filename.c_str(), std::ios::binary | std::ios::out);
+		boost::archive::binary_oarchive oa(ofile);
+
+		cout << "tree dumping..." << endl;
+		oa & _bin_tree.size();
+		for (BinTree::const_iterator it = _bin_tree.cbegin(); it != _bin_tree.cend(); it++) {
+			oa & it->first;
+			oa & it->second;
+		}
+		
+		_mutex.unlock();
+		ofile.close();
+	}
 }
 
 void Server::accept_client() {
@@ -26,6 +50,8 @@ void Server::on_accept(ClientConnection::ptr client, const boost::system::error_
 
 double Server::add_num_calc_res(int num) {
 	TreeItem ti(num);
+
+	_mutex.lock();
 	_bin_tree.insert(BinTree::value_type(num, ti));
 	BinTree::const_iterator i = _bin_tree.cbegin();
 	double squares_sum = 0;
@@ -34,5 +60,11 @@ double Server::add_num_calc_res(int num) {
 		i++;
 	}
 	double res = squares_sum / _bin_tree.size();
+	_mutex.unlock();
+
+	// Simulate hard work on server... // TODO: switch off it
+	boost::posix_time::milliseconds coffe_break(100);
+	boost::this_thread::sleep(coffe_break);
+
 	return res;
 }

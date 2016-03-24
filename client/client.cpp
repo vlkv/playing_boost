@@ -88,5 +88,6 @@ void Client::on_read(const boost::system::error_code & err, size_t bytes) {
 	}
 	std::string msg(_read_buffer, bytes);
 	std::cout << "Received a msg: " << msg << std::endl;
+
 	send_rand_num();
 }
