@@ -16,23 +16,12 @@ void ClientConnection::start() {
 }
 
 void ClientConnection::stop() {
-	if (!_started) return;
+	if (!_started) {
+		return;
+	}
+	cout << "Stopping client connection..." << endl;
 	_started = false;
 	_sock.close();
-}
-
-void ClientConnection::on_read(const boost::system::error_code & err, size_t bytes) {
-	if (err) stop();
-	if (!_started) return;
-	std::string msg(_read_buffer, bytes);
-	// TODO: convert msg to int, pass it to the server and take from server the average of squares, then, send the average to the client back...
-	std::cout << "Received a msg: " << msg << std::endl;
-	do_write("Server response.\n");
-}
-
-void ClientConnection::on_write(const boost::system::error_code & err, size_t bytes) {
-	cout << "Written " << bytes << " bytes" << endl;
-	do_read();
 }
 
 void ClientConnection::do_read() {
@@ -41,20 +30,51 @@ void ClientConnection::do_read() {
 		boost::bind(&ClientConnection::on_read, shared_from_this(), _1, _2));
 }
 
-void ClientConnection::do_write(const std::string & msg) {
-	if (!_started) return;
-	std::copy(msg.begin(), msg.end(), _write_buffer);
-	_sock.async_write_some(buffer(_write_buffer, msg.size()),
-		boost::bind(&ClientConnection::on_write, shared_from_this(), _1, _2));
-}
-
 size_t ClientConnection::read_complete(const boost::system::error_code & err, size_t bytes) {
-	if (err) return 0;
+	if (err) {
+		cerr << "error: " << err << endl;
+		return 0;
+	}
 	bool found = std::find(_read_buffer, _read_buffer + bytes, '\n') < _read_buffer + bytes;
 	return found ? 0 : 1;
 }
 
 
+void ClientConnection::on_read(const boost::system::error_code & err, size_t bytes) {
+	if (err) {
+		cerr << "on_read error: " << err << endl;
+		stop();
+	}
+		
+	if (!_started) {
+		return;
+	}
+	std::string msg(_read_buffer, bytes);
+	std::cout << "Received a msg: " << msg << std::endl;
+	int num = std::stoi(msg); // TODO: add exception handling...
+	double res = _server.lock()->add_num_calc_res(num);
+	std::string resStr = std::to_string(res);
+	do_write("Server response: " + resStr + "\n");
+}
 
-ip::tcp::socket& ClientConnection::sock() { return _sock; }
+void ClientConnection::do_write(const std::string & msg) {
+	if (!_started) {
+		return;
+	}
+	std::copy(msg.begin(), msg.end(), _write_buffer);
+	_sock.async_write_some(buffer(_write_buffer, msg.size()),
+		boost::bind(&ClientConnection::on_write, shared_from_this(), _1, _2));
+}
+
+void ClientConnection::on_write(const boost::system::error_code & err, size_t bytes) {
+	if (err) {
+		cerr << "on_write error: " << err << endl;
+		stop();
+	}
+	do_read();
+}
+
+ip::tcp::socket& ClientConnection::sock() {
+	return _sock;
+}
 

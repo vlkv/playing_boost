@@ -1,5 +1,6 @@
 #include "server.h"
 #include "client_connection.h"
+#include <boost/make_shared.hpp>
 
 
 Server::Server(int port) : _acceptor(_service, ip::tcp::endpoint(ip::tcp::v4(), port)) {
@@ -21,4 +22,17 @@ void Server::on_accept(ClientConnection::ptr client, const boost::system::error_
 	std::cout << "Client accepted!" << std::endl;
 	client->start();
 	accept_client();
+}
+
+double Server::add_num_calc_res(int num) {
+	TreeItem ti(num);
+	_bin_tree.insert(BinTree::value_type(num, ti));
+	BinTree::const_iterator i = _bin_tree.cbegin();
+	double squares_sum = 0;
+	while (i != _bin_tree.cend()) {
+		squares_sum += i->second.square_value();
+		i++;
+	}
+	double res = squares_sum / _bin_tree.size();
+	return res;
 }

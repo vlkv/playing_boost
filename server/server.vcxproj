@@ -149,10 +149,12 @@
     <ClCompile Include="client_connection.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="server.cpp" />
+    <ClCompile Include="tree_item.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="client_connection.h" />
     <ClInclude Include="server.h" />
+    <ClInclude Include="tree_item.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
