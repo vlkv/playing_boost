@@ -8,11 +8,6 @@
 using namespace boost::asio;
 using namespace std;
 
-// TODO: remove macroses
-#define MEM_FN(x)       boost::bind(&self_type::x, shared_from_this())
-#define MEM_FN1(x,y)    boost::bind(&self_type::x, shared_from_this(),y)
-#define MEM_FN2(x,y,z)  boost::bind(&self_type::x, shared_from_this(),y,z)
-
 class Server;
 
 class ClientConnection : public boost::enable_shared_from_this<ClientConnection> {
@@ -36,12 +31,15 @@ public:
 private:
 	ClientConnection(boost::asio::io_service& service, boost::shared_ptr<Server> server);
 
-	void on_read(const boost::system::error_code & err, size_t bytes);
-	void on_write(const boost::system::error_code & err, size_t bytes);
-	void do_read();
-	void do_write(const std::string & msg);
-	size_t read_complete(const boost::system::error_code & err, size_t bytes);
 	void stop();
-	bool started() const;
+
+	void do_read();
+	void on_read(const boost::system::error_code & err, size_t bytes);
+	size_t read_complete(const boost::system::error_code & err, size_t bytes);
+	
+	void on_write(const boost::system::error_code & err, size_t bytes);
+	void do_write(const std::string & msg);
+	
+	
 };
 
