@@ -63,8 +63,8 @@ double Server::add_num_calc_res(int num) {
 	_mutex.unlock();
 
 	// Simulate hard work on server... // TODO: you may switch it off
-	boost::posix_time::milliseconds coffe_break(100);
-	boost::this_thread::sleep(coffe_break);
+	//boost::posix_time::milliseconds coffe_break(100);
+	//boost::this_thread::sleep(coffe_break);
 
 	return res;
 }

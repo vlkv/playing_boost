@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
 
 	boost::log::add_file_log(log_filename);
 	boost::log::add_console_log();
-	boost::log::add_common_attributes();
+	boost::log::add_common_attributes(); // TODO: it has no effect, why?..
 
 	BOOST_LOG_TRIVIAL(info) << ">>>>>> Server started >>>>>>";
 	boost::shared_ptr<Server> s = boost::make_shared<Server>(port, dump_interval_sec, dump_filename);
