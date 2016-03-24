@@ -27,9 +27,11 @@ void ClientConnection::on_read(const boost::system::error_code & err, size_t byt
 	std::string msg(_read_buffer, bytes);
 	// TODO: convert msg to int, pass it to the server and take from server the average of squares, then, send the average to the client back...
 	std::cout << "Received a msg: " << msg << std::endl;
+	do_write("Server response.\n");
 }
 
 void ClientConnection::on_write(const boost::system::error_code & err, size_t bytes) {
+	cout << "Written " << bytes << " bytes" << endl;
 	do_read();
 }
 

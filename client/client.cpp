@@ -1,10 +1,17 @@
 #include "client.h"
 #include <string>
+#include <ctime>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/bind.hpp>
 #include <iostream>
 
-Client::Client(std::string host, int port) : _host(host), _port(port), _sock(_service), _started(false) {
+
+Client::Client(std::string host, int port) : _host(host), _port(port), _sock(_service), _started(false), _gen(std::time(0)) {
+}
+
+int Client::gen_rand_num() {
+	boost::random::uniform_int_distribution<> dist(0, 1023);
+	return dist(_gen);
 }
 
 void Client::start() {
@@ -20,7 +27,13 @@ void Client::on_connect(const boost::system::error_code& err) {
 		stop();
 	}
 	cout << "Connected!" << endl;
-	do_write("Hi, Server!\n"); // TODO: generate rand num
+	send_rand_num();
+}
+
+void Client::send_rand_num() {
+	int rand_num = gen_rand_num();
+	string str = std::to_string(rand_num);
+	do_write(str + "\n");
 }
 
 void Client::stop() {
@@ -55,9 +68,10 @@ size_t Client::read_complete(const boost::system::error_code & err, size_t bytes
 }
 
 void Client::on_read(const boost::system::error_code & err, size_t bytes) {
+	cout << "on_read" << endl;
 	if (err) stop();
 	if (!_started) return;
 	std::string msg(_read_buffer, bytes);
-	// TODO: convert msg to int, pass it to the server and take from server the average of squares, then, send the average to the client back...
 	std::cout << "Received a msg: " << msg << std::endl;
+	send_rand_num();
 }
