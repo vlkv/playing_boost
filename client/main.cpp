@@ -18,9 +18,9 @@ int main(int argc, char* argv[]) {
 
 	po::options_description desc("Client options");
 	desc.add_options()
-		("help", "print help")
-		("port", po::value<int>(&port)->default_value(8001), "server port number")
-		("host", po::value<std::string>(&host)->default_value("127.0.0.1"), "server IP address")
+		("help", "Print help")
+		("port", po::value<int>(&port)->default_value(8001), "Server port number")
+		("host", po::value<std::string>(&host)->default_value("127.0.0.1"), "Server IP address")
 		("log_file", po::value<std::string>(&log_filename)->default_value("client.log"), "Log filename")
 		;
 
