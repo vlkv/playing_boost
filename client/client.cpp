@@ -23,16 +23,17 @@ void Client::start() {
 
 void Client::on_connect(const boost::system::error_code& err) {
 	if (err) {
-		cerr << "on_connect error: " << err << endl;
+		BOOST_LOG_TRIVIAL(error) << "on_connect error: " << err;
 		stop();
 	}
-	cout << "Connected!" << endl;
+	BOOST_LOG_TRIVIAL(info) << "Connected!";
 	send_rand_num();
 }
 
 void Client::send_rand_num() {
 	int rand_num = gen_rand_num();
 	string str = std::to_string(rand_num);
+	BOOST_LOG_TRIVIAL(info) << "Sending request: " << str;
 	do_write(str + "\n");
 }
 
@@ -40,7 +41,7 @@ void Client::stop() {
 	if (!_started) {
 		return;
 	}
-	std::cout << "Stopping..." << std::endl;
+	BOOST_LOG_TRIVIAL(info) << "Stopping...";
 	_started = false;
 	_sock.close();
 }
@@ -56,10 +57,9 @@ void Client::do_write(const std::string& msg) {
 
 void Client::on_write(const boost::system::error_code& err, size_t bytes) {
 	if (err) {
-		cerr << "on_write error: " << err << endl;
+		BOOST_LOG_TRIVIAL(error) << "on_write error: " << err;
 		stop();
 	}
-	cout << "Written " << bytes << " bytes" << endl;
 	do_read();
 }
 
@@ -71,7 +71,7 @@ void Client::do_read() {
 
 size_t Client::read_complete(const boost::system::error_code & err, size_t bytes) {
 	if (err) {
-		cerr << "read_complete error: " << err << endl;
+		BOOST_LOG_TRIVIAL(error) << "read_complete error: " << err;
 		return 0;
 	}
 	bool found = std::find(_read_buffer, _read_buffer + bytes, '\n') < _read_buffer + bytes;
@@ -80,14 +80,14 @@ size_t Client::read_complete(const boost::system::error_code & err, size_t bytes
 
 void Client::on_read(const boost::system::error_code & err, size_t bytes) {
 	if (err) {
-		cerr << "on_read error: " << err << endl;
+		BOOST_LOG_TRIVIAL(error) << "on_read error: " << err;
 		stop();
 	}
 	if (!_started) {
 		return;
 	}
 	std::string msg(_read_buffer, bytes);
-	std::cout << "Received a msg: " << msg << std::endl;
+	BOOST_LOG_TRIVIAL(info) << "Received response: " << msg;
 
 	send_rand_num();
 }

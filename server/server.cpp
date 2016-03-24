@@ -23,7 +23,7 @@ void Server::dump_tree() {
 		std::fstream ofile(_dump_filename.c_str(), std::ios::binary | std::ios::out);
 		boost::archive::binary_oarchive oa(ofile);
 
-		cout << "tree dumping..." << endl;
+		BOOST_LOG_TRIVIAL(info) << "Dumping the tree...";
 		oa & _bin_tree.size();
 		for (BinTree::const_iterator it = _bin_tree.cbegin(); it != _bin_tree.cend(); it++) {
 			oa & it->first;
@@ -36,14 +36,14 @@ void Server::dump_tree() {
 }
 
 void Server::accept_client() {
-	std::cout << "Waiting for client..." << std::endl;
+	BOOST_LOG_TRIVIAL(info) << "Waiting for client...";
 	ClientConnection::ptr client = ClientConnection::new_(_service, shared_from_this());
 	_clients.push_back(client);
 	_acceptor.async_accept(client->sock(), boost::bind(&Server::on_accept, shared_from_this(), client, _1));
 }
 
 void Server::on_accept(ClientConnection::ptr client, const boost::system::error_code & err) {
-	std::cout << "Client accepted!" << std::endl;
+	BOOST_LOG_TRIVIAL(info) << "Client accepted!";
 	client->start();
 	accept_client();
 }
@@ -62,7 +62,7 @@ double Server::add_num_calc_res(int num) {
 	double res = squares_sum / _bin_tree.size();
 	_mutex.unlock();
 
-	// Simulate hard work on server... // TODO: switch off it
+	// Simulate hard work on server... // TODO: you may switch it off
 	boost::posix_time::milliseconds coffe_break(100);
 	boost::this_thread::sleep(coffe_break);
 

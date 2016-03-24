@@ -19,7 +19,7 @@ void ClientConnection::stop() {
 	if (!_started) {
 		return;
 	}
-	cout << "Stopping client connection..." << endl;
+	BOOST_LOG_TRIVIAL(info) << "Stopping client connection...";
 	_started = false;
 	_sock.close();
 }
@@ -32,7 +32,7 @@ void ClientConnection::do_read() {
 
 size_t ClientConnection::read_complete(const boost::system::error_code & err, size_t bytes) {
 	if (err) {
-		cerr << "error: " << err << endl;
+		BOOST_LOG_TRIVIAL(error) << "read_complete error: " << err;
 		return 0;
 	}
 	bool found = std::find(_read_buffer, _read_buffer + bytes, '\n') < _read_buffer + bytes;
@@ -42,7 +42,7 @@ size_t ClientConnection::read_complete(const boost::system::error_code & err, si
 
 void ClientConnection::on_read(const boost::system::error_code & err, size_t bytes) {
 	if (err) {
-		cerr << "on_read error: " << err << endl;
+		BOOST_LOG_TRIVIAL(error) << "on_read error: " << err;
 		stop();
 	}
 		
@@ -50,8 +50,16 @@ void ClientConnection::on_read(const boost::system::error_code & err, size_t byt
 		return;
 	}
 	std::string msg(_read_buffer, bytes);
-	std::cout << "Received a msg: " << msg << std::endl;
-	int num = std::stoi(msg); // TODO: add exception handling...
+	BOOST_LOG_TRIVIAL(info) << "Received a msg: " << msg;
+	int num;
+	try {
+		num = std::stoi(msg);
+	}
+	catch (std::exception& ex) {
+		BOOST_LOG_TRIVIAL(error) << "Could not parse number (" << msg << "), reason: " << ex.what();
+		stop();
+		return;
+	}
 	double res = _server.lock()->add_num_calc_res(num);
 	std::string resStr = std::to_string(res);
 	do_write("Server response: " + resStr + "\n");
@@ -68,7 +76,7 @@ void ClientConnection::do_write(const std::string & msg) {
 
 void ClientConnection::on_write(const boost::system::error_code & err, size_t bytes) {
 	if (err) {
-		cerr << "on_write error: " << err << endl;
+		BOOST_LOG_TRIVIAL(error) << "on_write error: " << err;
 		stop();
 	}
 	do_read();

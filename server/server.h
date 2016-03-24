@@ -8,6 +8,7 @@
 #include "tree_item.h"
 #include <boost/thread/thread.hpp>
 #include <boost/archive/binary_oarchive.hpp>
+#include <boost/log/trivial.hpp>
 
 using namespace boost::asio;
 using namespace std;
