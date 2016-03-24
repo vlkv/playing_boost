@@ -5,7 +5,6 @@
 #include <boost/make_shared.hpp>
 #include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
-#include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/utility/setup/file.hpp>
 #include <boost/log/utility/setup/console.hpp>
 
@@ -37,8 +36,7 @@ int main(int argc, char* argv[]) {
 
 	boost::log::add_file_log(log_filename);
 	boost::log::add_console_log();
-	boost::log::add_common_attributes(); // TODO: it has no effect, why?..
-
+	
 	BOOST_LOG_TRIVIAL(info) << ">>>>>> Server started >>>>>>";
 	boost::shared_ptr<Server> s = boost::make_shared<Server>(port, dump_interval_sec, dump_filename);
 	s->start();

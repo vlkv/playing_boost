@@ -29,10 +29,13 @@ public:
 private:
 	void on_connect(const boost::system::error_code& err);
 	void stop();
+	
 	void send_rand_num();
 	int gen_rand_num();
+
 	void do_write(const std::string & msg);
 	void on_write(const boost::system::error_code& err, size_t bytes);
+	
 	void do_read();
 	size_t read_complete(const boost::system::error_code & err, size_t bytes);
 	void on_read(const boost::system::error_code & err, size_t bytes);

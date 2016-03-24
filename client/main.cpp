@@ -4,7 +4,6 @@
 #include <boost/make_shared.hpp>
 #include <boost/program_options.hpp>
 #include <boost/log/trivial.hpp>
-#include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/utility/setup/file.hpp>
 #include <boost/log/utility/setup/console.hpp>
 
@@ -35,7 +34,6 @@ int main(int argc, char* argv[]) {
 
 	boost::log::add_file_log(log_filename);
 	boost::log::add_console_log();
-	boost::log::add_common_attributes();
 	
 	BOOST_LOG_TRIVIAL(info) << ">>>>>> Client started >>>>>>";
 	boost::shared_ptr<Client> client = boost::make_shared<Client>(host, port);

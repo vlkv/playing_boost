@@ -19,18 +19,18 @@ void Server::dump_tree() {
 		boost::posix_time::seconds dump_interval_sec(_dump_interval_sec);
 		boost::this_thread::sleep(dump_interval_sec);
 
+		BOOST_LOG_TRIVIAL(info) << "Dumping the tree...";
+		
 		_mutex.lock();
 		std::fstream ofile(_dump_filename.c_str(), std::ios::binary | std::ios::out);
 		boost::archive::binary_oarchive oa(ofile);
-
-		BOOST_LOG_TRIVIAL(info) << "Dumping the tree...";
 		oa & _bin_tree.size();
 		for (BinTree::const_iterator it = _bin_tree.cbegin(); it != _bin_tree.cend(); it++) {
 			oa & it->first;
 			oa & it->second;
 		}
-		
 		_mutex.unlock();
+
 		ofile.close();
 	}
 }
@@ -56,13 +56,13 @@ double Server::add_num_calc_res(int num) {
 	BinTree::const_iterator i = _bin_tree.cbegin();
 	double squares_sum = 0;
 	while (i != _bin_tree.cend()) {
-		squares_sum += i->second.square_value();
+		squares_sum += i->second.square_num();
 		i++;
 	}
 	double res = squares_sum / _bin_tree.size();
 	_mutex.unlock();
 
-	// Simulate hard work on server... // TODO: you may switch it off
+	// We may simulate hard work on server here... 
 	//boost::posix_time::milliseconds coffe_break(100);
 	//boost::this_thread::sleep(coffe_break);
 
