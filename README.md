@@ -11,5 +11,5 @@ BUILD INSTRUCTIONS
 
 TEST
 * Run test.cmd. This script starts a server (from Debug subdirectory) and a number of clients.
-* 
+* ?..
 
