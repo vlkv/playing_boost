@@ -11,7 +11,7 @@
 
 namespace po = boost::program_options;
 
-Server *s_ptr; // TODO: OMG, raw ptr...
+Server *s_ptr; // TODO: OMG, global raw ptr...
 BOOL WINAPI CtrlHandler(DWORD fdwCtrlType);
 
 int main(int argc, char* argv[]) {
@@ -47,10 +47,11 @@ int main(int argc, char* argv[]) {
 	s_ptr = s.get();
 	BOOL ret = SetConsoleCtrlHandler(CtrlHandler, TRUE);
 	s->start();
+	
 	BOOST_LOG_TRIVIAL(info) << "Use count before reset " << s.use_count();
 	s.reset();
 	
-	boost::posix_time::milliseconds wait(1000);
+	boost::posix_time::milliseconds wait(2000); // TODO: remove it
 	boost::this_thread::sleep(wait);
 	BOOST_LOG_TRIVIAL(info) << "<<<<<< Server is done <<<<<<";
 }

@@ -20,6 +20,8 @@ private:
 	char _read_buffer[max_msg];
 	char _write_buffer[max_msg];
 	bool _started;
+	bool _stopped;
+	bool _busy;
 	boost::weak_ptr<Server> _server;
 
 public:
@@ -28,21 +30,21 @@ public:
 	static ptr new_(boost::asio::io_service& service, boost::shared_ptr<Server> server);
 	void start();
 	void stop();
+	bool is_stopped();
 	virtual ~ClientConnection();
 	ip::tcp::socket& sock();
 
 private:
 	ClientConnection(boost::asio::io_service& service, boost::shared_ptr<Server> server);
 
-	
-
 	void do_read();
 	void on_read(const boost::system::error_code & err, size_t bytes);
 	size_t read_complete(const boost::system::error_code & err, size_t bytes);
 	
 	void on_write(const boost::system::error_code & err, size_t bytes);
-	void do_write(const std::string & msg);
+	void do_write(const std::string &msg);
 	
+	double process_msg(const std::string &msg);
 	
 };
 

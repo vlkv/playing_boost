@@ -4,6 +4,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/bind.hpp>
 #include <iostream>
+#include <boost/thread.hpp>
 
 
 Client::Client(std::string host, int port) : _host(host), _port(port), _sock(_service), _started(false), _gen(std::time(0)) {

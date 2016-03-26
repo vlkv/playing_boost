@@ -18,9 +18,10 @@ void Server::start() {
 		try {
 			_service.run();
 		}
-		catch (const client_exception &e) {
-			BOOST_LOG_TRIVIAL(error) << "Client exception: " << e.what();
-			// TODO: stop only the failed client
+		catch (const client_exception &e) { // TODO: test this case
+			BOOST_LOG_TRIVIAL(error) << "Client fatal exception: " << e.what();
+			e.client()->stop();
+			_clients.remove(e.client());
 		}
 		catch (const std::exception &e) {
 			BOOST_LOG_TRIVIAL(error) << "Unexpected std::exception: " << e.what();
@@ -45,27 +46,39 @@ void Server::stop_async() {
 }
 
 void Server::stop() {
-	BOOST_LOG_TRIVIAL(info) << "Server stop called";
 	if (!_started) {
 		return;
 	}
 	BOOST_LOG_TRIVIAL(info) << "Stopping server...";
 	_started = false;
 	_acceptor.close();
+	BOOST_LOG_TRIVIAL(info) << "tcp acceptor closed";
 	
+	std::for_each(_clients.cbegin(), _clients.cend(), [](const ClientConnection::ptr &c) { c->stop(); });
+	stop_wait_for_clients_to_stop();
+}
+
+void Server::stop_wait_for_clients_to_stop() {
+	BOOST_LOG_TRIVIAL(info) << "Waiting for clients to stop...";
+	bool all_clients_stopped = std::all_of(_clients.cbegin(), _clients.cend(), [](const ClientConnection::ptr &c) { return c->is_stopped(); });
+	if (!all_clients_stopped) {
+		boost::asio::deadline_timer timer(_service, boost::posix_time::milliseconds(100));
+		timer.async_wait(boost::bind(&Server::stop_wait_for_clients_to_stop, shared_from_this()));
+		return;
+	}
+	_clients.clear();
+	BOOST_LOG_TRIVIAL(info) << "All client connections stopped";
+	stop_finish();
+}
+
+void Server::stop_finish() {
+	_service.stop();
+	BOOST_LOG_TRIVIAL(info) << "io_service stopped";
+
 	_tree_dumper.interrupt();
 	_tree_dumper.join(); // TODO: use timeout maybe?..
 	BOOST_LOG_TRIVIAL(info) << "TreeDump thread stopped";
 
-	while (!_clients.empty()) { // TODO: we should protect _clients with lock, because a new client may try to connect
-		ClientConnection::ptr c = _clients.front();
-		_clients.pop_front();
-		c->stop();
-		c.reset();
-	}
-
-	
-	_service.stop();
 	BOOST_LOG_TRIVIAL(info) << "Server stopped";
 }
 
@@ -80,6 +93,7 @@ void Server::dump_tree() {
 			break;
 		}
 
+		// TODO: try catch here...
 		BOOST_LOG_TRIVIAL(info) << "Dumping the tree...";
 		std::fstream ofile(_dump_filename.c_str(), std::ios::binary | std::ios::out);
 		boost::archive::binary_oarchive oa(ofile);
@@ -109,29 +123,30 @@ void Server::accept_client() {
 }
 
 void Server::on_accept(ClientConnection::ptr client, const boost::system::error_code & err) {
+	if (err) {
+		BOOST_LOG_TRIVIAL(error) << "on_accept error: " << err;
+		return;
+	}
 	BOOST_LOG_TRIVIAL(info) << "Client accepted!";
 	client->start();
 	accept_client();
 }
 
-double Server::add_num_calc_res(int num) {
+void Server::add_num(int num) {
+	boost::make_lock_guard(_mutex);
 	TreeItem ti(num);
-
-	_mutex.lock();
 	_bin_tree.insert(BinTree::value_type(num, ti));
+}
+
+double Server::calc_res() {
+	boost::shared_lock<boost::shared_mutex> lock(_mutex);
 	BinTree::const_iterator i = _bin_tree.cbegin();
 	double squares_sum = 0;
 	while (i != _bin_tree.cend()) {
 		squares_sum += i->second.square_num();
-		i++;
+		++i;
 	}
 	double res = squares_sum / _bin_tree.size();
-	_mutex.unlock();
-
-	// We may simulate hard work on server here... 
-	//boost::posix_time::milliseconds coffe_break(100);
-	//boost::this_thread::sleep(coffe_break);
-
 	return res;
 }
 

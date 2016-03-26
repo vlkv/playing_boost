@@ -7,6 +7,8 @@
 #include <list>
 #include "tree_item.h"
 #include <boost/thread/thread.hpp>
+#include <boost/thread/lock_guard.hpp>
+#include <boost/thread/locks.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/log/trivial.hpp>
 
@@ -34,7 +36,8 @@ public:
 	virtual ~Server();
 	void start();
 	void stop_async();
-	double add_num_calc_res(int num);
+	void add_num(int num);
+	double calc_res();
 	void dump_tree();
 	
 	
@@ -44,4 +47,6 @@ private:
 	void Server::accept_client();
 	void on_accept(ClientConnection::ptr client, const boost::system::error_code &err);
 	void stop();
+	void stop_wait_for_clients_to_stop();
+	void stop_finish();
 };

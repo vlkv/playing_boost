@@ -15,4 +15,6 @@ public:
 		: std::exception(_Message),
 		_client(c) {
 	}
+
+	ClientConnection::ptr client() const { return _client; }
 };
