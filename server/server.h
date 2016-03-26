@@ -14,25 +14,34 @@ using namespace boost::asio;
 using namespace std;
 
 class Server : public boost::enable_shared_from_this<Server> {
+	typedef std::list<ClientConnection::ptr> ClientsList;
+
 	io_service _service;
+	bool _started;
 	ip::tcp::acceptor _acceptor;
-	std::list<ClientConnection::ptr> _clients;
+	ClientsList _clients;
 	BinTree _bin_tree;
 	boost::thread _tree_dumper;
 	int _dump_interval_sec;
-	boost::mutex _mutex;
+	boost::shared_mutex _mutex;
 	std::string _dump_filename;
+
 
 public:
 	typedef boost::shared_ptr<Server> ptr;
-
+	
 	Server(int port, int dump_interval_sec, std::string dump_filename);
+	virtual ~Server();
 	void start();
-	void Server::accept_client();
-	void on_accept(ClientConnection::ptr client, const boost::system::error_code& err);
-
+	void stop_async();
 	double add_num_calc_res(int num);
-
 	void dump_tree();
-};
+	
+	
 
+private:
+	void dump_tree_impl(boost::archive::binary_oarchive &oa);
+	void Server::accept_client();
+	void on_accept(ClientConnection::ptr client, const boost::system::error_code &err);
+	void stop();
+};

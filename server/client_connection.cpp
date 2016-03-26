@@ -16,21 +16,34 @@ void ClientConnection::start() {
 }
 
 void ClientConnection::stop() {
+	BOOST_LOG_TRIVIAL(info) << "ClientConnection stop called";
 	if (!_started) {
 		return;
 	}
 	BOOST_LOG_TRIVIAL(info) << "Stopping client connection...";
+	// TODO: send stop command to the client
 	_started = false;
 	_sock.close();
 }
 
+ClientConnection::~ClientConnection() {
+	BOOST_LOG_TRIVIAL(info) << "ClientConnection desctruction...";
+	stop();
+}
+
 void ClientConnection::do_read() {
+	if (!_started) {
+		return;
+	}
 	async_read(_sock, buffer(_read_buffer),
 		boost::bind(&ClientConnection::read_complete, shared_from_this(), _1, _2),
 		boost::bind(&ClientConnection::on_read, shared_from_this(), _1, _2));
 }
 
-size_t ClientConnection::read_complete(const boost::system::error_code & err, size_t bytes) {
+size_t ClientConnection::read_complete(const boost::system::error_code &err, size_t bytes) {
+	if (!_started) {
+		return 0;
+	}
 	if (err) {
 		BOOST_LOG_TRIVIAL(error) << "read_complete error: " << err;
 		return 0;
@@ -40,13 +53,14 @@ size_t ClientConnection::read_complete(const boost::system::error_code & err, si
 }
 
 
-void ClientConnection::on_read(const boost::system::error_code & err, size_t bytes) {
+void ClientConnection::on_read(const boost::system::error_code &err, size_t bytes) {
+	if (!_started) {
+		BOOST_LOG_TRIVIAL(info) << "Reading interrupted, connection is stopped";
+		return;
+	}
 	if (err) {
 		BOOST_LOG_TRIVIAL(error) << "on_read error: " << err;
 		stop();
-	}
-		
-	if (!_started) {
 		return;
 	}
 	std::string msg(_read_buffer, bytes);
@@ -78,6 +92,10 @@ void ClientConnection::on_write(const boost::system::error_code & err, size_t by
 	if (err) {
 		BOOST_LOG_TRIVIAL(error) << "on_write error: " << err;
 		stop();
+		return;
+	}
+	if (!_started) {
+		return;
 	}
 	do_read();
 }

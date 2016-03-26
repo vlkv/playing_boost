@@ -27,12 +27,14 @@ public:
 
 	static ptr new_(boost::asio::io_service& service, boost::shared_ptr<Server> server);
 	void start();
+	void stop();
+	virtual ~ClientConnection();
 	ip::tcp::socket& sock();
 
 private:
 	ClientConnection(boost::asio::io_service& service, boost::shared_ptr<Server> server);
 
-	void stop();
+	
 
 	void do_read();
 	void on_read(const boost::system::error_code & err, size_t bytes);

@@ -156,6 +156,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="client_connection.h" />
+    <ClInclude Include="client_exception.h" />
     <ClInclude Include="server.h" />
     <ClInclude Include="tree_item.h" />
   </ItemGroup>

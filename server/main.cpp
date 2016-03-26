@@ -7,8 +7,12 @@
 #include <boost/log/trivial.hpp>
 #include <boost/log/utility/setup/file.hpp>
 #include <boost/log/utility/setup/console.hpp>
+#include <windows.h>
 
 namespace po = boost::program_options;
+
+Server *s_ptr; // TODO: OMG, raw ptr...
+BOOL WINAPI CtrlHandler(DWORD fdwCtrlType);
 
 int main(int argc, char* argv[]) {
 	int port;
@@ -38,7 +42,31 @@ int main(int argc, char* argv[]) {
 	boost::log::add_console_log();
 	
 	BOOST_LOG_TRIVIAL(info) << ">>>>>> Server started >>>>>>";
+	
 	boost::shared_ptr<Server> s = boost::make_shared<Server>(port, dump_interval_sec, dump_filename);
+	s_ptr = s.get();
+	BOOL ret = SetConsoleCtrlHandler(CtrlHandler, TRUE);
 	s->start();
+	BOOST_LOG_TRIVIAL(info) << "Use count before reset " << s.use_count();
+	s.reset();
+	
+	boost::posix_time::milliseconds wait(1000);
+	boost::this_thread::sleep(wait);
 	BOOST_LOG_TRIVIAL(info) << "<<<<<< Server is done <<<<<<";
+}
+
+
+BOOL WINAPI CtrlHandler(DWORD ctrlType) {
+	switch (ctrlType) {
+	case CTRL_C_EVENT:
+	case CTRL_CLOSE_EVENT:
+	case CTRL_BREAK_EVENT:
+	case CTRL_LOGOFF_EVENT:
+	case CTRL_SHUTDOWN_EVENT:
+		BOOST_LOG_TRIVIAL(info) << "ConsoleCtrl signal detected, " << ctrlType;
+		s_ptr->stop_async(); // TODO: check thread safety...
+		return(TRUE);
+	default:
+		return FALSE;
+	}
 }
