@@ -38,14 +38,10 @@ void ClientConnection::stop() {
 }
 
 void ClientConnection::disconnect() { // TODO: remove copy-paste
-	if (!_started) {
-		return;
-	}
 	BOOST_LOG_TRIVIAL(info) << "Stopping client connection (disconnecting) id=" << _id << "...";
 	_started = false;
-	if (!_busy) {
-		stop_sock_close();
-	}
+	stop_sock_close();
+	throw disconnected_exception(shared_from_this());
 }
 
 void ClientConnection::stop_sock_close() {
@@ -170,7 +166,6 @@ void ClientConnection::on_write_disconnected(const boost::system::error_code & e
 	}
 	_busy = false;
 	disconnect();
-	throw disconnected_exception(shared_from_this());
 }
 
 void ClientConnection::do_write_stop() { // TODO: remove copy-paste
