@@ -22,11 +22,11 @@ void Server::start() {
 	}
 	catch (const std::exception &e) {
 		BOOST_LOG_TRIVIAL(error) << "Unexpected std::exception: " << e.what();
-		stop();
+		stop_finish(); // TODO: maybe call stop_finish?
 	}
 	catch (...) {
 		BOOST_LOG_TRIVIAL(error) << "Unexpected unknown exception";
-		stop();
+		stop_finish(); // TODO: maybe call stop_finish?
 	}
 }
 
@@ -76,12 +76,12 @@ void Server::stop_wait_for_clients_to_stop() {
 		timer.async_wait(boost::bind(&Server::stop_wait_for_clients_to_stop, shared_from_this()));
 		return;
 	}
-	_clients.clear();
 	BOOST_LOG_TRIVIAL(info) << "All client connections stopped";
 	stop_finish();
 }
 
 void Server::stop_finish() {
+	_clients.clear();
 	_service.stop();
 	BOOST_LOG_TRIVIAL(info) << "io_service stopped";
 
@@ -129,7 +129,7 @@ void Server::dump_tree_impl(boost::archive::binary_oarchive &oa) {
 }
 
 void Server::accept_client() {
-	if (!_started) {
+	if (!_acceptor.is_open()) {
 		return;
 	}
 	BOOST_LOG_TRIVIAL(info) << "Waiting for client...";
@@ -140,12 +140,12 @@ void Server::accept_client() {
 
 void Server::on_accept(ClientConnection::ptr client, const boost::system::error_code & err) {
 	if (err.value() == boost::asio::error::operation_aborted) {
-		BOOST_LOG_TRIVIAL(info) << "on_accept operation_aborted";
-		return;
+		throw server_exception("on_accept operation_aborted", client);
 	}
 	if (err) {
-		BOOST_LOG_TRIVIAL(error) << "on_accept error: " << err;
-		return;
+		ostringstream oss;
+		oss << "on_accept error: " << err;
+		throw server_exception(oss.str(), client);
 	}
 	BOOST_LOG_TRIVIAL(info) << "Client accepted!";
 	client->start();
