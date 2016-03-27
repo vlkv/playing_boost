@@ -46,11 +46,9 @@ void ClientConnection::do_read() {
 		_sock.close();
 		return;
 	}
-	//BOOST_LOG_TRIVIAL(info) << "do_read, reading msg from client...";
 	async_read(_sock, buffer(_read_buffer),
 		boost::bind(&ClientConnection::read_complete, shared_from_this(), _1, _2),
 		boost::bind(&ClientConnection::on_read, shared_from_this(), _1, _2));
-	//BOOST_LOG_TRIVIAL(info) << "do_read, async_read returned";
 }
 
 size_t ClientConnection::read_complete(const boost::system::error_code &err, size_t bytes) {

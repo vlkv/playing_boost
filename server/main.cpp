@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	boost::log::add_file_log(log_filename);
-	boost::log::add_console_log();
+	boost::log::add_console_log(); // TODO: add common attributes to log
 	
 	BOOST_LOG_TRIVIAL(info) << ">>>>>> Server started >>>>>>";
 	
@@ -48,11 +48,12 @@ int main(int argc, char* argv[]) {
 	BOOL ret = SetConsoleCtrlHandler(CtrlHandler, TRUE);
 	s->start();
 	
-	BOOST_LOG_TRIVIAL(info) << "Use count before reset " << s.use_count();
-	s.reset();
+	//BOOST_LOG_TRIVIAL(info) << "Use count before reset " << s.use_count();
+	//s.reset(); // TODO: this line is not necesary, sharep_ptr will be destroyed automatically
 	
-	boost::posix_time::milliseconds wait(2000); // TODO: remove it
+	boost::posix_time::milliseconds wait(2000); // TODO: remove it in final version
 	boost::this_thread::sleep(wait);
+
 	BOOST_LOG_TRIVIAL(info) << "<<<<<< Server is done <<<<<<";
 }
 

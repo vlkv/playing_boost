@@ -13,23 +13,23 @@ Server::Server(int port, int dump_interval_sec, std::string dump_filename) :
 
 void Server::start() {
 	_started = true;
+	accept_client(); // TODO: exception from here?.. server would not start, we should just log about it
 	while (_started) {
-		accept_client();
 		try {
 			_service.run();
 		}
-		catch (const client_exception &e) { // TODO: test this case
-			BOOST_LOG_TRIVIAL(error) << "Client fatal exception: " << e.what();
+		catch (const client_exception &e) { // TODO: test this case if it really works
+			BOOST_LOG_TRIVIAL(error) << "Client failed, reason: " << e.what();
 			e.client()->stop();
 			_clients.remove(e.client());
 		}
 		catch (const std::exception &e) {
-			BOOST_LOG_TRIVIAL(error) << "Unexpected std::exception: " << e.what();
+			BOOST_LOG_TRIVIAL(fatal) << "Unexpected std::exception: " << e.what();
 			stop();
 			break;
 		}
 		catch (...) {
-			BOOST_LOG_TRIVIAL(error) << "Unknown exception caugth";
+			BOOST_LOG_TRIVIAL(fatal) << "Unexpected unknown exception caugth";
 			stop();
 			break;
 		}
@@ -77,7 +77,7 @@ void Server::stop_finish() {
 
 	_tree_dumper.interrupt();
 	_tree_dumper.join(); // TODO: use timeout maybe?..
-	BOOST_LOG_TRIVIAL(info) << "TreeDump thread stopped";
+	BOOST_LOG_TRIVIAL(info) << "Tree dump thread stopped";
 
 	BOOST_LOG_TRIVIAL(info) << "Server stopped";
 }
@@ -87,19 +87,24 @@ void Server::dump_tree() {
 		try {
 			boost::posix_time::seconds dump_interval_sec(_dump_interval_sec);
 			boost::this_thread::sleep(dump_interval_sec);
+			
+			BOOST_LOG_TRIVIAL(info) << "Tree dump started...";
+			std::fstream ofile(_dump_filename.c_str(), std::ios::binary | std::ios::out);
+			boost::archive::binary_oarchive oa(ofile);
+			dump_tree_impl(oa);
+			ofile.close();
+			BOOST_LOG_TRIVIAL(info) << "Tree dump completed";
 		}
-		catch (boost::thread_interrupted) {
-			BOOST_LOG_TRIVIAL(info) << "TreeDump thread is interrupted";
+		catch (const boost::thread_interrupted &) {
+			BOOST_LOG_TRIVIAL(info) << "Tree dump thread is interrupted";
 			break;
 		}
-
-		// TODO: try catch here...
-		BOOST_LOG_TRIVIAL(info) << "Dumping the tree...";
-		std::fstream ofile(_dump_filename.c_str(), std::ios::binary | std::ios::out);
-		boost::archive::binary_oarchive oa(ofile);
-		dump_tree_impl(oa);
-		ofile.close();
-		BOOST_LOG_TRIVIAL(info) << "Tree dump completed";
+		catch (const std::exception &ex) {
+			BOOST_LOG_TRIVIAL(error) << "Tree dump failed, reason: " << ex.what();
+		}
+		catch (...) {
+			BOOST_LOG_TRIVIAL(error) << "Tree dump failed, reason: unknown";
+		}
 	}
 }
 
