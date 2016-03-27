@@ -130,7 +130,7 @@ void Server::dump_tree() {
 void Server::dump_tree_impl(boost::archive::binary_oarchive &oa) {
 	boost::shared_lock<boost::shared_mutex> lock(_mutex);
 	oa & _bin_tree.size();
-	for (BinTree::const_iterator it = _bin_tree.cbegin(); it != _bin_tree.cend(); it++) {
+	for (BinTree::const_iterator it = _bin_tree.cbegin(); it != _bin_tree.cend(); ++it) {
 		oa & it->first;
 		oa & it->second;
 	}

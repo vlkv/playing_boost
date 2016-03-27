@@ -13,7 +13,7 @@
 
 namespace po = boost::program_options;
 
-Server *s_ptr; // TODO: OMG, global raw ptr...
+Server *s_ptr;
 BOOL WINAPI CtrlHandler(DWORD fdwCtrlType);
 
 int main(int argc, char* argv[]) {
@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	boost::log::add_file_log(log_filename);
-	boost::log::add_console_log(); // TODO: add common attributes to log
+	boost::log::add_console_log();
 	
 	BOOST_LOG_TRIVIAL(info) << ">>>>>> Server app started >>>>>>";
 	
@@ -53,7 +53,6 @@ int main(int argc, char* argv[]) {
 	if (!s.unique()) {
 		BOOST_LOG_TRIVIAL(error) << "Memory leak! Use count=" << s.use_count();
 	}
-	s.reset(); // TODO: this line is not necesary, sharep_ptr will be destroyed automatically
 	
 	boost::posix_time::milliseconds wait(2000); // TODO: remove it in final version
 	boost::this_thread::sleep(wait);
@@ -70,7 +69,7 @@ BOOL WINAPI CtrlHandler(DWORD ctrlType) {
 	case CTRL_LOGOFF_EVENT:
 	case CTRL_SHUTDOWN_EVENT:
 		BOOST_LOG_TRIVIAL(info) << "ConsoleCtrl signal detected, " << ctrlType;
-		s_ptr->stop_async(); // TODO: check thread safety...
+		s_ptr->stop_async(); // It's thread safe
 		return(TRUE);
 	default:
 		return FALSE;
