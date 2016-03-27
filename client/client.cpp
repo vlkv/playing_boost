@@ -70,7 +70,7 @@ void Client::service_run_loop() {
 void Client::send_rand_num() {
 	int rand_num = gen_rand_num();
 	string str = std::to_string(rand_num);
-	do_write_num("num:" + str + "\n");
+	do_write("num:" + str + "\n", boost::bind(&Client::on_write_num, shared_from_this(), _1, _2));
 }
 
 void Client::send_disconnect() {
@@ -95,14 +95,10 @@ void Client::stop_sock_close() {
 	BOOST_LOG_TRIVIAL(info) << "Client stopped";
 }
 
-void Client::do_write_num(const std::string& msg) {
-	if (!_started) {
-		return;
-	}
+void Client::do_write(const std::string &msg, OnWriteHandler on_write_handler) {
 	BOOST_LOG_TRIVIAL(info) << "Sending to server msg: " << msg;
 	std::copy(msg.begin(), msg.end(), _write_buffer);
-	boost::asio::async_write(_sock, buffer(_write_buffer, msg.size()),
-		boost::bind(&Client::on_write_num, shared_from_this(), _1, _2));
+	boost::asio::async_write(_sock, buffer(_write_buffer, msg.size()), on_write_handler);
 }
 
 void Client::on_write_num(const boost::system::error_code& err, size_t bytes) {
@@ -112,17 +108,6 @@ void Client::on_write_num(const boost::system::error_code& err, size_t bytes) {
 		throw client_exception(oss.str());
 	}
 	do_read();
-}
-
-void Client::do_write_disconnect() {
-	if (!_started) {
-		return;
-	}
-	const std::string& msg("disconnect\n");
-	BOOST_LOG_TRIVIAL(info) << "Sending to server msg: " << msg;
-	std::copy(msg.begin(), msg.end(), _write_buffer);
-	boost::asio::async_write(_sock, buffer(_write_buffer, msg.size()),
-		boost::bind(&Client::on_write_disconnect, shared_from_this(), _1, _2));
 }
 
 void Client::on_write_disconnect(const boost::system::error_code& err, size_t bytes) {
@@ -166,7 +151,7 @@ void Client::on_read(const boost::system::error_code & err, size_t bytes) {
 	BOOST_LOG_TRIVIAL(info) << "Received response: " << msg;
 	if (_need_disconnect) {
 		_need_disconnect = false;
-		do_write_disconnect();
+		do_write("disconnect\n", boost::bind(&Client::on_write_disconnect, shared_from_this(), _1, _2));
 	}
 	else {
 		handle_msg(msg);

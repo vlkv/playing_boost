@@ -5,6 +5,8 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <iostream>
 #include <boost/log/trivial.hpp>
+#include <boost/function.hpp>
+
 
 using namespace boost::asio;
 using namespace std;
@@ -39,14 +41,12 @@ private:
 	ClientConnection(boost::asio::io_service& service, boost::shared_ptr<Server> server);
 
 	void do_read();
-	void on_read(const boost::system::error_code & err, size_t bytes);
 	size_t read_complete(const boost::system::error_code & err, size_t bytes);
+	void on_read(const boost::system::error_code & err, size_t bytes);
 	
-	void do_write(const std::string &msg);
-	void on_write(const boost::system::error_code & err, size_t bytes);
-
-	void do_write_stop();
-	void do_write_disconnected();
+	typedef boost::function<void(const boost::system::error_code &, size_t)> OnWriteHandler;
+	void do_write(const std::string &msg, OnWriteHandler on_write_handler);
+	void on_write_ok(const boost::system::error_code & err, size_t bytes);
 	void on_write_disconnected(const boost::system::error_code & err, size_t bytes);
 
 	void handle_msg(const std::string &msg);
