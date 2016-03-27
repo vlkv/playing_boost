@@ -21,7 +21,6 @@ class Client : public boost::enable_shared_from_this<Client> {
 	enum { max_msg = 1024 };
 	char _read_buffer[max_msg];
 	char _write_buffer[max_msg];
-	bool _started; // TODO: try to remove it
 	bool _need_disconnect;
 	boost::random::mt19937 _gen;
 
@@ -32,11 +31,9 @@ public:
 	void stop_async();
 	
 private:
-	void service_run_loop();
 	void connect();
 	void on_connect(const boost::system::error_code& err);
 	void stop();
-	void stop_sock_close();
 
 	void send_rand_num();
 	void send_disconnect();
