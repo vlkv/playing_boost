@@ -128,6 +128,10 @@ void Server::accept_client() {
 }
 
 void Server::on_accept(ClientConnection::ptr client, const boost::system::error_code & err) {
+	if (err.value() == boost::asio::error::operation_aborted) {
+		BOOST_LOG_TRIVIAL(info) << "on_accept operation_aborted";
+		return;
+	}
 	if (err) {
 		BOOST_LOG_TRIVIAL(error) << "on_accept error: " << err;
 		return;

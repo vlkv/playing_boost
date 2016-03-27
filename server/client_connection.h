@@ -15,6 +15,8 @@ class ClientConnection : public boost::enable_shared_from_this<ClientConnection>
 	typedef ClientConnection self_type;
 	
 private:
+	int _id;
+	static int _next_id;
 	ip::tcp::socket _sock;
 	enum { max_msg = 1024 };
 	char _read_buffer[max_msg];
@@ -45,6 +47,7 @@ private:
 	void do_write(const std::string &msg);
 	
 	double process_msg(const std::string &msg);
+
+	void stop_sock_close();
 	
 };
-

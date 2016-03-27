@@ -48,8 +48,10 @@ int main(int argc, char* argv[]) {
 	BOOL ret = SetConsoleCtrlHandler(CtrlHandler, TRUE);
 	s->start();
 	
-	//BOOST_LOG_TRIVIAL(info) << "Use count before reset " << s.use_count();
-	//s.reset(); // TODO: this line is not necesary, sharep_ptr will be destroyed automatically
+	if (!s.unique()) {
+		BOOST_LOG_TRIVIAL(error) << "Memory leak! " << s.use_count();
+	}
+	s.reset(); // TODO: this line is not necesary, sharep_ptr will be destroyed automatically
 	
 	boost::posix_time::milliseconds wait(2000); // TODO: remove it in final version
 	boost::this_thread::sleep(wait);
