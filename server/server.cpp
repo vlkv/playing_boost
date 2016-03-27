@@ -1,6 +1,6 @@
 #include "server.h"
 #include "client_connection.h"
-#include "server_exception.h"
+#include "server_exceptions.h"
 #include <fstream>
 
 Server::Server(int port, int dump_interval_sec, std::string dump_filename) :
@@ -78,7 +78,6 @@ void Server::stop() {
 
 void Server::stop_wait_for_clients_to_stop() {
 	BOOST_LOG_TRIVIAL(info) << "Waiting for clients to stop...";
-	// TODO: how to stop gracefully, if here we'd have an exception?
 	if (!_clients.empty()) {
 		boost::asio::deadline_timer timer(_service, boost::posix_time::milliseconds(100));
 		timer.async_wait(boost::bind(&Server::stop_wait_for_clients_to_stop, shared_from_this()));
@@ -94,8 +93,12 @@ void Server::stop_finish() {
 	BOOST_LOG_TRIVIAL(info) << "io_service stopped";
 
 	_tree_dumper.interrupt();
-	_tree_dumper.join(); // TODO: use timeout maybe?..
-	BOOST_LOG_TRIVIAL(info) << "Tree dump thread stopped";
+	if (_tree_dumper.try_join_for(boost::chrono::seconds(1))) {
+		BOOST_LOG_TRIVIAL(info) << "Tree dump thread stopped";
+	}
+	else {
+		BOOST_LOG_TRIVIAL(error) << "Tree dump thread is NOT stopped, but could not wait longer";
+	}
 
 	_stopped = true;
 	BOOST_LOG_TRIVIAL(info) << "Server stopped";

@@ -1,6 +1,6 @@
 #include "client_connection.h"
 #include "server.h"
-#include "server_exception.h"
+#include "server_exceptions.h"
 #include <boost/algorithm/string.hpp>
 
 int ClientConnection::_next_id = 1;
@@ -20,7 +20,6 @@ ClientConnection::~ClientConnection() {
 	if (_sock.is_open()) {
 		_sock.close();
 	}
-	// TODO: anything else?..
 }
 
 void ClientConnection::start() {

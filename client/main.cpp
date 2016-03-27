@@ -49,8 +49,8 @@ int main(int argc, char* argv[]) {
 		BOOST_LOG_TRIVIAL(error) << "Memory leak! Use count=" << c.use_count();
 	}
 
-	boost::posix_time::milliseconds wait(2000); // TODO: remove it in final version
-	boost::this_thread::sleep(wait);
+	//boost::posix_time::milliseconds wait(2000); // TODO: remove it in final version
+	//boost::this_thread::sleep(wait);
 	BOOST_LOG_TRIVIAL(info) << "<<<<<< Client app is done <<<<<<";
 }
 
