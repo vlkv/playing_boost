@@ -6,7 +6,7 @@
 int ClientConnection::_next_id = 1;
 
 ClientConnection::ClientConnection(boost::asio::io_service& service, Server::ptr server) 
-	: _id(ClientConnection::_next_id++), _sock(service), _started(false), _busy(false), _server(server) {
+	: _id(ClientConnection::_next_id++), _sock(service), _started(false), _busy(false), _need_stop(false), _server(server) {
 }
 
 ClientConnection::ptr ClientConnection::new_(boost::asio::io_service& service, Server::ptr server) {
@@ -28,7 +28,20 @@ void ClientConnection::stop() {
 		return;
 	}
 	BOOST_LOG_TRIVIAL(info) << "Stopping client connection id=" << _id << "...";
-	do_write("stop\n");
+	_started = false;
+	if (!_busy) {
+		do_write_stop();
+	} else
+	{
+		_need_stop = true;
+	}
+}
+
+void ClientConnection::disconnect() { // TODO: remove copy-paste
+	if (!_started) {
+		return;
+	}
+	BOOST_LOG_TRIVIAL(info) << "Stopping client connection (disconnecting) id=" << _id << "...";
 	_started = false;
 	if (!_busy) {
 		stop_sock_close();
@@ -50,21 +63,28 @@ ClientConnection::~ClientConnection() {
 }
 
 void ClientConnection::do_read_write() {
-	if (!_started && !_busy) {
-		stop_sock_close();
+	_busy = true;
+	if (_need_stop) {
+		_need_stop = false;
+		do_write_stop();
 		return;
 	}
-	_busy = true;
 	do_read();
 }
 
 void ClientConnection::do_read() {
+	if (is_stopped()) {
+		return;
+	}
 	async_read(_sock, buffer(_read_buffer),
 		boost::bind(&ClientConnection::read_complete, shared_from_this(), _1, _2),
 		boost::bind(&ClientConnection::on_read, shared_from_this(), _1, _2));
 }
 
 size_t ClientConnection::read_complete(const boost::system::error_code &err, size_t bytes) {
+	if (is_stopped()) {
+		return 0;
+	}
 	if (err) {
 		BOOST_LOG_TRIVIAL(error) << "read_complete error: " << err << " client id=" << _id;
 		_busy = false;
@@ -82,8 +102,11 @@ void ClientConnection::on_read(const boost::system::error_code &err, size_t byte
 		_busy = false;
 		throw server_exception("on_read error", shared_from_this());
 	}
+	if (is_stopped()) {
+		return;
+	}
 	std::string msg(_read_buffer, bytes);
-	BOOST_LOG_TRIVIAL(info) << "Received a msg: " << msg << " client id=" << _id;
+	BOOST_LOG_TRIVIAL(info) << "Received from client id=" << _id << " msg: " << msg;
 	handle_msg(msg);
 }
 
@@ -100,7 +123,7 @@ void ClientConnection::handle_msg(const std::string &msg) {
 		do_write("ok:" + resStr + "\n");
 	}
 	else if (cmd == "disconnect") {
-		throw server_exception("client disconnected", shared_from_this()); // TODO: this should not be logged as 'error'
+		do_write_disconnected();
 	}
 	else {
 		ostringstream oss;
@@ -130,6 +153,32 @@ void ClientConnection::on_write(const boost::system::error_code & err, size_t by
 	}
 	_busy = false;
 	do_read_write();
+}
+
+void ClientConnection::do_write_disconnected() { // TODO: remove copy-paste
+	std::string msg("disconnected\n");
+	BOOST_LOG_TRIVIAL(info) << "Sending to client id=" << _id << " msg: " << msg;
+	std::copy(msg.begin(), msg.end(), _write_buffer);
+	_sock.async_write_some(buffer(_write_buffer, msg.size()),
+		boost::bind(&ClientConnection::on_write_disconnected, shared_from_this(), _1, _2));
+}
+
+void ClientConnection::on_write_disconnected(const boost::system::error_code & err, size_t bytes) {
+	if (err) {
+		BOOST_LOG_TRIVIAL(error) << "on_write error: " << err << " client id=" << _id;
+		throw server_exception("on_write error", shared_from_this());
+	}
+	_busy = false;
+	disconnect();
+	throw disconnected_exception(shared_from_this());
+}
+
+void ClientConnection::do_write_stop() { // TODO: remove copy-paste
+	std::string msg("stop\n");
+	BOOST_LOG_TRIVIAL(info) << "Sending to client id=" << _id << " msg: " << msg;
+	std::copy(msg.begin(), msg.end(), _write_buffer);
+	_sock.async_write_some(buffer(_write_buffer, msg.size()),
+		boost::bind(&ClientConnection::on_write_disconnected, shared_from_this(), _1, _2));
 }
 
 ip::tcp::socket& ClientConnection::sock() {

@@ -18,3 +18,20 @@ public:
 
 	ClientConnection::ptr client() const { return _client; }
 };
+
+class disconnected_exception : public server_exception
+{
+public:
+	explicit disconnected_exception(ClientConnection::ptr c)
+		: server_exception("Client disconnected", c) {
+	}
+};
+
+
+class accept_aborted_exception : public server_exception
+{
+public:
+	explicit accept_aborted_exception(ClientConnection::ptr c)
+		: server_exception("Accept of client aborted", c) {
+	}
+};

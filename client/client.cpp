@@ -8,7 +8,7 @@
 #include <boost/thread.hpp>
 #include <boost/algorithm/string.hpp>
 
-Client::Client(std::string host, int port) : _host(host), _port(port), _sock(_service), _started(false), _is_waiting_response(false), _gen(std::time(0)) {
+Client::Client(std::string host, int port) : _host(host), _port(port), _sock(_service), _started(false), _busy(false), _need_disconnect(false), _gen(std::time(0)) {
 }
 
 Client::~Client() {
@@ -73,9 +73,19 @@ void Client::on_connect(const boost::system::error_code& err) {
 }
 
 void Client::send_rand_num() {
+	_busy = true;
 	int rand_num = gen_rand_num();
 	string str = std::to_string(rand_num);
 	do_write("num:" + str + "\n");
+}
+
+void Client::send_disconnect() {
+	if (!_busy) {
+		do_write_disconnect();
+	}
+	else {
+		_need_disconnect = true;
+	}
 }
 
 void Client::stop() {
@@ -84,13 +94,13 @@ void Client::stop() {
 	}
 	BOOST_LOG_TRIVIAL(info) << "Stopping...";
 	_started = false;
-	if (!_is_waiting_response) {
+	if (!_busy) {
 		stop_sock_close();
 	}
 }
 
 void Client::stop_async() {
-	_service.dispatch(boost::bind(&Client::disconnect_then_stop, shared_from_this()));
+	_service.dispatch(boost::bind(&Client::send_disconnect, shared_from_this()));
 }
 
 void Client::stop_sock_close() {
@@ -102,7 +112,6 @@ void Client::do_write(const std::string& msg) {
 	if (!_started) {
 		return;
 	}
-	_is_waiting_response = true;
 	BOOST_LOG_TRIVIAL(info) << "Sending to server msg: " << msg;
 	std::copy(msg.begin(), msg.end(), _write_buffer);
 	_sock.async_write_some(buffer(_write_buffer, msg.size()),
@@ -113,12 +122,13 @@ void Client::on_write(const boost::system::error_code& err, size_t bytes) {
 	if (err) {
 		ostringstream oss;
 		oss << "on_write error: " << err;
+		_busy = false;
 		throw client_exception(oss.str());
 	}
 	do_read();
 }
 
-void Client::disconnect_then_stop() {
+void Client::do_write_disconnect() {
 	if (!_started) {
 		return;
 	}
@@ -133,17 +143,16 @@ void Client::on_write_disconnect(const boost::system::error_code& err, size_t by
 	if (err) {
 		ostringstream oss;
 		oss << "on_write error: " << err;
+		_busy = false;
 		throw client_exception(oss.str());
 	}
-	
-	stop();
-	
+	do_read();
 }
 
 
 void Client::do_read() {
 	if (!_started) {
-		stop_sock_close();
+		//stop_sock_close(); // TODO?..
 		return;
 	}
 	async_read(_sock, buffer(_read_buffer),
@@ -154,22 +163,24 @@ void Client::do_read() {
 size_t Client::read_complete(const boost::system::error_code & err, size_t bytes) {
 	if (err) {
 		BOOST_LOG_TRIVIAL(error) << "read_complete error: " << err;
+		_busy = false;
 		return 0;
 	}
+	_busy = bytes > 0;
 	bool found = std::find(_read_buffer, _read_buffer + bytes, '\n') < _read_buffer + bytes;
 	return found ? 0 : 1;
 }
 
 void Client::on_read(const boost::system::error_code & err, size_t bytes) {	
-	_is_waiting_response = false;
 	if (err) {
 		ostringstream oss;
 		oss << "on_read error: " << err;
+		_busy = false;
 		throw client_exception(oss.str());
 	}
 	std::string msg(_read_buffer, bytes);
 	BOOST_LOG_TRIVIAL(info) << "Received response: " << msg;
-
+	_busy = false;
 	handle_msg(msg);
 }
 
@@ -177,15 +188,25 @@ void Client::handle_msg(const std::string &msg) {
 	if (!_started) {
 		return;
 	}
+	
 	std::vector<std::string> strs;
 	boost::split(strs, msg, boost::is_any_of(":\n"));
 	std::string cmd = strs[0];
 	if (cmd == "ok") {
 		std::string res = strs[1];
 		BOOST_LOG_TRIVIAL(info) << "Result is: " << res;
-		send_rand_num();
+		if (_need_disconnect) {
+			_need_disconnect = false;
+			send_disconnect();
+		}
+		else {
+			send_rand_num();
+		}
 	}
 	else if (cmd == "stop") {
+		stop();
+	}
+	else if (cmd == "disconnected") {
 		stop();
 	}
 	else {

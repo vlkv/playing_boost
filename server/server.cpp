@@ -35,6 +35,14 @@ void Server::service_run_loop() {
 		try {
 			_service.run();
 		}
+		catch (const disconnected_exception &e) {
+			BOOST_LOG_TRIVIAL(info) << "Client id=" << e.client()->id() << " disconnected";
+			_clients.remove(e.client());
+		}
+		catch (const accept_aborted_exception &e) {
+			BOOST_LOG_TRIVIAL(info) << "Client id=" << e.client()->id() << " accept aborted";
+			_clients.remove(e.client());
+		}
 		catch (const server_exception &e) {
 			BOOST_LOG_TRIVIAL(error) << "Client id=" << e.client()->id() << " failed, reason: " << e.what();
 			e.client()->stop();
@@ -141,7 +149,7 @@ void Server::accept_client() {
 
 void Server::on_accept(ClientConnection::ptr client, const boost::system::error_code & err) {
 	if (err.value() == boost::asio::error::operation_aborted) {
-		throw server_exception("on_accept operation_aborted", client); // TODO: this should not be logged as 'error'
+		throw accept_aborted_exception(client);
 	}
 	if (err) {
 		ostringstream oss;
