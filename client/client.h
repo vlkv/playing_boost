@@ -24,9 +24,13 @@ class Client : public boost::enable_shared_from_this<Client> {
 
 public:
 	Client(std::string host, int port);
+	virtual ~Client();
 	void start();
+	void stop_async();
 	
 private:
+	void service_run_loop();
+	void connect();
 	void on_connect(const boost::system::error_code& err);
 	void stop();
 	

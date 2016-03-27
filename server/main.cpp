@@ -7,6 +7,8 @@
 #include <boost/log/trivial.hpp>
 #include <boost/log/utility/setup/file.hpp>
 #include <boost/log/utility/setup/console.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/thread/thread.hpp> 
 #include <windows.h>
 
 namespace po = boost::program_options;
@@ -41,7 +43,7 @@ int main(int argc, char* argv[]) {
 	boost::log::add_file_log(log_filename);
 	boost::log::add_console_log(); // TODO: add common attributes to log
 	
-	BOOST_LOG_TRIVIAL(info) << ">>>>>> Server started >>>>>>";
+	BOOST_LOG_TRIVIAL(info) << ">>>>>> Server app started >>>>>>";
 	
 	boost::shared_ptr<Server> s = boost::make_shared<Server>(port, dump_interval_sec, dump_filename);
 	s_ptr = s.get();
@@ -49,14 +51,14 @@ int main(int argc, char* argv[]) {
 	s->start();
 	
 	if (!s.unique()) {
-		BOOST_LOG_TRIVIAL(error) << "Memory leak! " << s.use_count();
+		BOOST_LOG_TRIVIAL(error) << "Memory leak! Use count=" << s.use_count();
 	}
 	s.reset(); // TODO: this line is not necesary, sharep_ptr will be destroyed automatically
 	
 	boost::posix_time::milliseconds wait(2000); // TODO: remove it in final version
 	boost::this_thread::sleep(wait);
 
-	BOOST_LOG_TRIVIAL(info) << "<<<<<< Server is done <<<<<<";
+	BOOST_LOG_TRIVIAL(info) << "<<<<<< Server app is done <<<<<<";
 }
 
 

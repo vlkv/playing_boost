@@ -1,4 +1,5 @@
 #include "client.h"
+#include "client_exception.h"
 #include <string>
 #include <ctime>
 #include <boost/asio/ip/tcp.hpp>
@@ -10,22 +11,62 @@
 Client::Client(std::string host, int port) : _host(host), _port(port), _sock(_service), _started(false), _gen(std::time(0)) {
 }
 
+Client::~Client() {
+	BOOST_LOG_TRIVIAL(info) << "Client destruction...";
+	stop();
+}
+
 int Client::gen_rand_num() {
 	boost::random::uniform_int_distribution<> dist(0, 1023);
 	return dist(_gen);
 }
 
 void Client::start() {
-	ip::tcp::endpoint ep(ip::address::from_string(_host), _port);
+	BOOST_LOG_TRIVIAL(info) << "Client start";
+	try {
+		_started = true;
+		connect();
+		service_run_loop();
+	}
+	catch (const std::exception &e) {
+		BOOST_LOG_TRIVIAL(error) << "Unexpected std::exception: " << e.what();
+		stop();
+	}
+	catch (...) {
+		BOOST_LOG_TRIVIAL(fatal) << "Unexpected unknown exception";
+		stop();
+	}
+}
+
+void Client::connect() {
+	boost::system::error_code err;
+	ip::address addr = ip::address::from_string(_host, err);
+	if (err) {
+		ostringstream oss;
+		oss << "Bad host " << _host << ", reason:" << err;
+		throw client_exception(oss.str());
+	}
+	ip::tcp::endpoint ep(addr, _port);
 	_sock.async_connect(ep, boost::bind(&Client::on_connect, shared_from_this(), _1));
-	_started = true;
-	_service.run();
+}
+
+void Client::service_run_loop() {
+	while (true) {
+		try {
+			_service.run();
+		}
+		// TODO: some exceptions could be not fatal... what are they?
+		catch (...) {
+			throw;
+		}
+	}
 }
 
 void Client::on_connect(const boost::system::error_code& err) {
 	if (err) {
-		BOOST_LOG_TRIVIAL(error) << "on_connect error: " << err;
-		stop();
+		ostringstream oss;
+		oss << "on_connect error: " << err;
+		throw client_exception(oss.str());
 	}
 	BOOST_LOG_TRIVIAL(info) << "Connected!";
 	send_rand_num();
@@ -45,6 +86,11 @@ void Client::stop() {
 	BOOST_LOG_TRIVIAL(info) << "Stopping...";
 	_started = false;
 	_sock.close();
+	BOOST_LOG_TRIVIAL(info) << "Stopped";
+}
+
+void Client::stop_async() {
+	_service.dispatch(boost::bind(&Client::stop, shared_from_this()));
 }
 
 void Client::do_write(const std::string& msg) {
@@ -58,8 +104,9 @@ void Client::do_write(const std::string& msg) {
 
 void Client::on_write(const boost::system::error_code& err, size_t bytes) {
 	if (err) {
-		BOOST_LOG_TRIVIAL(error) << "on_write error: " << err;
-		stop();
+		ostringstream oss;
+		oss << "on_write error: " << err;
+		throw client_exception(oss.str());
 	}
 	do_read();
 }
@@ -81,11 +128,9 @@ size_t Client::read_complete(const boost::system::error_code & err, size_t bytes
 
 void Client::on_read(const boost::system::error_code & err, size_t bytes) {
 	if (err) {
-		BOOST_LOG_TRIVIAL(error) << "on_read error: " << err;
-		stop();
-	}
-	if (!_started) {
-		return;
+		ostringstream oss;
+		oss << "on_read error: " << err;
+		throw client_exception(oss.str());
 	}
 	std::string msg(_read_buffer, bytes);
 	BOOST_LOG_TRIVIAL(info) << "Received response: " << msg;

@@ -35,7 +35,7 @@
     <ClInclude Include="tree_item.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="client_exception.h">
+    <ClInclude Include="server_exception.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

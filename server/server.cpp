@@ -1,6 +1,6 @@
 #include "server.h"
 #include "client_connection.h"
-#include "client_exception.h"
+#include "server_exception.h"
 #include <fstream>
 
 Server::Server(int port, int dump_interval_sec, std::string dump_filename) :
@@ -12,7 +12,9 @@ Server::Server(int port, int dump_interval_sec, std::string dump_filename) :
 	_tree_dumper(boost::thread(boost::bind(&Server::dump_tree, this))) {
 }
 
+// TODO: create service_run_loop fun
 void Server::start() {
+	BOOST_LOG_TRIVIAL(info) << "Server start";
 	_started = true;
 	_stopped = false;
 	accept_client(); // TODO: exception from here?.. server would not start, we should just log about it
@@ -20,7 +22,7 @@ void Server::start() {
 		try {
 			_service.run();
 		}
-		catch (const client_exception &e) { // TODO: test this case if it really works
+		catch (const server_exception &e) { // TODO: test this case if it really works
 			BOOST_LOG_TRIVIAL(error) << "Client id=" << e.client()->id() << " failed, reason: " << e.what();
 			e.client()->stop();
 			_clients.remove(e.client());

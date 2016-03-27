@@ -6,9 +6,14 @@
 #include <boost/log/trivial.hpp>
 #include <boost/log/utility/setup/file.hpp>
 #include <boost/log/utility/setup/console.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/thread/thread.hpp>
+#include <windows.h>
 
 namespace po = boost::program_options;
-using namespace std;
+
+Client *c_ptr; // TODO: OMG, global raw ptr...
+BOOL WINAPI CtrlHandler(DWORD fdwCtrlType);
 
 int main(int argc, char* argv[]) {
 	int port;
@@ -35,12 +40,35 @@ int main(int argc, char* argv[]) {
 	boost::log::add_file_log(log_filename);
 	boost::log::add_console_log();
 	
-	BOOST_LOG_TRIVIAL(info) << ">>>>>> Client started >>>>>>";
-	boost::shared_ptr<Client> client = boost::make_shared<Client>(host, port);
-	client->start();
-	BOOST_LOG_TRIVIAL(info) << "<<<<<< Client is done <<<<<<";
+	BOOST_LOG_TRIVIAL(info) << ">>>>>> Client app started >>>>>>";
+	boost::shared_ptr<Client> c = boost::make_shared<Client>(host, port);
+	c_ptr = c.get();
+	BOOL ret = SetConsoleCtrlHandler(CtrlHandler, TRUE);
+	c->start();
+	if (!c.unique()) {
+		BOOST_LOG_TRIVIAL(error) << "Memory leak! Use count=" << c.use_count();
+	}
+	c.reset(); // TODO: this line is not necesary, sharep_ptr will be destroyed automatically
+
+	boost::posix_time::milliseconds wait(2000); // TODO: remove it in final version
+	boost::this_thread::sleep(wait);
+	BOOST_LOG_TRIVIAL(info) << "<<<<<< Client app is done <<<<<<";
 }
 
+BOOL WINAPI CtrlHandler(DWORD ctrlType) {
+	switch (ctrlType) {
+	case CTRL_C_EVENT:
+	case CTRL_CLOSE_EVENT:
+	case CTRL_BREAK_EVENT:
+	case CTRL_LOGOFF_EVENT:
+	case CTRL_SHUTDOWN_EVENT:
+		BOOST_LOG_TRIVIAL(info) << "ConsoleCtrl signal detected, " << ctrlType;
+		c_ptr->stop_async(); // TODO: check thread safety...
+		return(TRUE);
+	default:
+		return FALSE;
+	}
+}
 
 
 

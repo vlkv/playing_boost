@@ -1,5 +1,5 @@
 #include "client_connection.h"
-#include "client_exception.h"
+#include "server_exception.h"
 #include "server.h"
 
 int ClientConnection::_next_id = 1;
@@ -82,7 +82,7 @@ void ClientConnection::on_read(const boost::system::error_code &err, size_t byte
 	if (err) {
 		BOOST_LOG_TRIVIAL(error) << "on_read error: " << err << " client id=" << _id;
 		_busy = false;
-		throw client_exception("on_read error", shared_from_this());
+		throw server_exception("on_read error", shared_from_this());
 	}
 	try {
 		std::string msg(_read_buffer, bytes);
@@ -93,7 +93,7 @@ void ClientConnection::on_read(const boost::system::error_code &err, size_t byte
 	}
 	catch (...) {
 		_busy = false;
-		throw client_exception("Unexpected error in client connection", shared_from_this());
+		throw server_exception("Unexpected error in client connection", shared_from_this());
 	}
 }
 
@@ -114,7 +114,7 @@ void ClientConnection::on_write(const boost::system::error_code & err, size_t by
 	_busy = false;
 	if (err) {
 		BOOST_LOG_TRIVIAL(error) << "on_write error: " << err << " client id=" << _id;
-		throw client_exception("on_write error", shared_from_this());
+		throw server_exception("on_write error", shared_from_this());
 	}
 	do_read();
 }
