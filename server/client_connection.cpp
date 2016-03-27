@@ -6,7 +6,7 @@
 int ClientConnection::_next_id = 1;
 
 ClientConnection::ClientConnection(boost::asio::io_service& service, Server::ptr server) 
-	: _id(ClientConnection::_next_id++), _sock(service), _started(false), _busy(false), _need_stop(false), _server(server) {
+	: _id(ClientConnection::_next_id++), _sock(service), _started(false), _busy(false), _server(server) {
 }
 
 ClientConnection::ptr ClientConnection::new_(boost::asio::io_service& service, Server::ptr server) {
@@ -29,12 +29,7 @@ void ClientConnection::stop() {
 	}
 	BOOST_LOG_TRIVIAL(info) << "Stopping client connection id=" << _id << "...";
 	_started = false;
-	if (!_busy) {
-		do_write_stop();
-	} else
-	{
-		_need_stop = true;
-	}
+	do_write_stop();
 }
 
 void ClientConnection::disconnect() { // TODO: remove copy-paste
@@ -59,12 +54,6 @@ ClientConnection::~ClientConnection() {
 }
 
 void ClientConnection::do_read_write() {
-	_busy = true;
-	if (_need_stop) {
-		_need_stop = false;
-		do_write_stop();
-		return;
-	}
 	do_read();
 }
 
@@ -83,23 +72,20 @@ size_t ClientConnection::read_complete(const boost::system::error_code &err, siz
 	}
 	if (err) {
 		BOOST_LOG_TRIVIAL(error) << "read_complete error: " << err << " client id=" << _id;
-		_busy = false;
 		return 0;
 	}
-	_busy = bytes > 0;
 	bool found = std::find(_read_buffer, _read_buffer + bytes, '\n') < _read_buffer + bytes;
 	return found ? 0 : 1;
 }
 
 
 void ClientConnection::on_read(const boost::system::error_code &err, size_t bytes) {
-	if (err) {
-		BOOST_LOG_TRIVIAL(error) << "on_read error: " << err << " client id=" << _id;
-		_busy = false;
-		throw server_exception("on_read error", shared_from_this());
-	}
 	if (is_stopped()) {
 		return;
+	}
+	if (err) {
+		BOOST_LOG_TRIVIAL(error) << "on_read error: " << err << " client id=" << _id;
+		throw server_exception("on_read error", shared_from_this());
 	}
 	std::string msg(_read_buffer, bytes);
 	BOOST_LOG_TRIVIAL(info) << "Received from client id=" << _id << " msg: " << msg;
@@ -147,11 +133,11 @@ void ClientConnection::on_write(const boost::system::error_code & err, size_t by
 		BOOST_LOG_TRIVIAL(error) << "on_write error: " << err << " client id=" << _id;
 		throw server_exception("on_write error", shared_from_this());
 	}
-	_busy = false;
 	do_read_write();
 }
 
 void ClientConnection::do_write_disconnected() { // TODO: remove copy-paste
+	_busy = true;
 	std::string msg("disconnected\n");
 	BOOST_LOG_TRIVIAL(info) << "Sending to client id=" << _id << " msg: " << msg;
 	std::copy(msg.begin(), msg.end(), _write_buffer);
@@ -169,6 +155,7 @@ void ClientConnection::on_write_disconnected(const boost::system::error_code & e
 }
 
 void ClientConnection::do_write_stop() { // TODO: remove copy-paste
+	_busy = true;
 	std::string msg("stop\n");
 	BOOST_LOG_TRIVIAL(info) << "Sending to client id=" << _id << " msg: " << msg;
 	std::copy(msg.begin(), msg.end(), _write_buffer);

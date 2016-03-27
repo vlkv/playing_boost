@@ -41,8 +41,8 @@ private:
 	void send_rand_num();
 	void send_disconnect();
 
-	void do_write(const std::string & msg);
-	void on_write(const boost::system::error_code& err, size_t bytes);
+	void do_write_num(const std::string & msg);
+	void on_write_num(const boost::system::error_code& err, size_t bytes);
 
 	void do_write_disconnect();
 	void on_write_disconnect(const boost::system::error_code& err, size_t bytes);

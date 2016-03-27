@@ -16,11 +16,6 @@ Client::~Client() {
 	stop();
 }
 
-int Client::gen_rand_num() {
-	boost::random::uniform_int_distribution<> dist(0, 1023);
-	return dist(_gen);
-}
-
 void Client::start() {
 	BOOST_LOG_TRIVIAL(info) << "Client start";
 	_started = true;
@@ -50,6 +45,16 @@ void Client::connect() {
 	_sock.async_connect(ep, boost::bind(&Client::on_connect, shared_from_this(), _1));
 }
 
+void Client::on_connect(const boost::system::error_code& err) {
+	if (err) {
+		ostringstream oss;
+		oss << "on_connect error: " << err;
+		throw client_exception(oss.str());
+	}
+	BOOST_LOG_TRIVIAL(info) << "Connected!";
+	send_rand_num();
+}
+
 void Client::service_run_loop() {
 	while (_started) {
 		try {
@@ -62,30 +67,16 @@ void Client::service_run_loop() {
 	}
 }
 
-void Client::on_connect(const boost::system::error_code& err) {
-	if (err) {
-		ostringstream oss;
-		oss << "on_connect error: " << err;
-		throw client_exception(oss.str());
-	}
-	BOOST_LOG_TRIVIAL(info) << "Connected!";
-	send_rand_num();
-}
-
 void Client::send_rand_num() {
-	_busy = true;
 	int rand_num = gen_rand_num();
 	string str = std::to_string(rand_num);
-	do_write("num:" + str + "\n");
+	do_write_num("num:" + str + "\n");
 }
 
 void Client::send_disconnect() {
-	if (!_busy) {
-		do_write_disconnect();
-	}
-	else {
-		_need_disconnect = true;
-	}
+	
+	do_write_disconnect();
+	
 }
 
 void Client::stop() {
@@ -94,9 +85,7 @@ void Client::stop() {
 	}
 	BOOST_LOG_TRIVIAL(info) << "Stopping...";
 	_started = false;
-	if (!_busy) {
-		stop_sock_close();
-	}
+	stop_sock_close();
 }
 
 void Client::stop_async() {
@@ -108,21 +97,20 @@ void Client::stop_sock_close() {
 	BOOST_LOG_TRIVIAL(info) << "Client stopped";
 }
 
-void Client::do_write(const std::string& msg) {
+void Client::do_write_num(const std::string& msg) {
 	if (!_started) {
 		return;
 	}
 	BOOST_LOG_TRIVIAL(info) << "Sending to server msg: " << msg;
 	std::copy(msg.begin(), msg.end(), _write_buffer);
 	_sock.async_write_some(buffer(_write_buffer, msg.size()),
-		boost::bind(&Client::on_write, shared_from_this(), _1, _2));
+		boost::bind(&Client::on_write_num, shared_from_this(), _1, _2));
 }
 
-void Client::on_write(const boost::system::error_code& err, size_t bytes) {
+void Client::on_write_num(const boost::system::error_code& err, size_t bytes) {
 	if (err) {
 		ostringstream oss;
 		oss << "on_write error: " << err;
-		_busy = false;
 		throw client_exception(oss.str());
 	}
 	do_read();
@@ -143,7 +131,6 @@ void Client::on_write_disconnect(const boost::system::error_code& err, size_t by
 	if (err) {
 		ostringstream oss;
 		oss << "on_write error: " << err;
-		_busy = false;
 		throw client_exception(oss.str());
 	}
 	do_read();
@@ -152,7 +139,6 @@ void Client::on_write_disconnect(const boost::system::error_code& err, size_t by
 
 void Client::do_read() {
 	if (!_started) {
-		//stop_sock_close(); // TODO?..
 		return;
 	}
 	async_read(_sock, buffer(_read_buffer),
@@ -163,10 +149,8 @@ void Client::do_read() {
 size_t Client::read_complete(const boost::system::error_code & err, size_t bytes) {
 	if (err) {
 		BOOST_LOG_TRIVIAL(error) << "read_complete error: " << err;
-		_busy = false;
 		return 0;
 	}
-	_busy = bytes > 0;
 	bool found = std::find(_read_buffer, _read_buffer + bytes, '\n') < _read_buffer + bytes;
 	return found ? 0 : 1;
 }
@@ -175,12 +159,10 @@ void Client::on_read(const boost::system::error_code & err, size_t bytes) {
 	if (err) {
 		ostringstream oss;
 		oss << "on_read error: " << err;
-		_busy = false;
 		throw client_exception(oss.str());
 	}
 	std::string msg(_read_buffer, bytes);
 	BOOST_LOG_TRIVIAL(info) << "Received response: " << msg;
-	_busy = false;
 	handle_msg(msg);
 }
 
@@ -195,13 +177,7 @@ void Client::handle_msg(const std::string &msg) {
 	if (cmd == "ok") {
 		std::string res = strs[1];
 		BOOST_LOG_TRIVIAL(info) << "Result is: " << res;
-		if (_need_disconnect) {
-			_need_disconnect = false;
-			send_disconnect();
-		}
-		else {
-			send_rand_num();
-		}
+		send_rand_num();
 	}
 	else if (cmd == "stop") {
 		stop();
@@ -214,4 +190,9 @@ void Client::handle_msg(const std::string &msg) {
 		oss << "Unexpected msg from server: " << msg;
 		throw client_exception(oss.str());
 	}
+}
+
+int Client::gen_rand_num() {
+	boost::random::uniform_int_distribution<> dist(0, 1023);
+	return dist(_gen);
 }

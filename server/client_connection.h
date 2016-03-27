@@ -23,7 +23,6 @@ private:
 	char _write_buffer[max_msg];
 	bool _started;
 	bool _busy;
-	bool _need_stop;
 	boost::weak_ptr<Server> _server;
 
 public:
