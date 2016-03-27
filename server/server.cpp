@@ -6,6 +6,7 @@
 Server::Server(int port, int dump_interval_sec, std::string dump_filename) :
 	_acceptor(_service, ip::tcp::endpoint(ip::tcp::v4(), port)), 
 	_started(false),
+	_stopped(true),
 	_dump_interval_sec(dump_interval_sec),
 	_dump_filename(dump_filename),
 	_tree_dumper(boost::thread(boost::bind(&Server::dump_tree, this))) {
@@ -13,13 +14,14 @@ Server::Server(int port, int dump_interval_sec, std::string dump_filename) :
 
 void Server::start() {
 	_started = true;
+	_stopped = false;
 	accept_client(); // TODO: exception from here?.. server would not start, we should just log about it
-	while (_started) {
+	while (!_stopped) {
 		try {
 			_service.run();
 		}
 		catch (const client_exception &e) { // TODO: test this case if it really works
-			BOOST_LOG_TRIVIAL(error) << "Client failed, reason: " << e.what();
+			BOOST_LOG_TRIVIAL(error) << "Client id=" << e.client()->id() << " failed, reason: " << e.what();
 			e.client()->stop();
 			_clients.remove(e.client());
 		}
@@ -79,6 +81,7 @@ void Server::stop_finish() {
 	_tree_dumper.join(); // TODO: use timeout maybe?..
 	BOOST_LOG_TRIVIAL(info) << "Tree dump thread stopped";
 
+	_stopped = true;
 	BOOST_LOG_TRIVIAL(info) << "Server stopped";
 }
 

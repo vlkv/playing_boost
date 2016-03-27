@@ -13,6 +13,10 @@ ClientConnection::ptr ClientConnection::new_(boost::asio::io_service& service, S
 	return c;
 }
 
+const int ClientConnection::id() const {
+	return _id;
+}
+
 void ClientConnection::start() {
 	_started = true;
 	_stopped = false;
@@ -58,7 +62,7 @@ void ClientConnection::do_read() {
 
 size_t ClientConnection::read_complete(const boost::system::error_code &err, size_t bytes) {
 	if (_stopped) {
-		return 0;
+		//return 0;
 	}
 	if (err) {
 		BOOST_LOG_TRIVIAL(error) << "read_complete error: " << err << " client id=" << _id;
@@ -73,7 +77,7 @@ size_t ClientConnection::read_complete(const boost::system::error_code &err, siz
 
 void ClientConnection::on_read(const boost::system::error_code &err, size_t bytes) {
 	if (_stopped) {
-		return;
+		//return;
 	}
 	if (err) {
 		BOOST_LOG_TRIVIAL(error) << "on_read error: " << err << " client id=" << _id;
@@ -101,7 +105,6 @@ double ClientConnection::process_msg(const std::string &msg) {
 }
 
 void ClientConnection::do_write(const std::string & msg) {
-	//_busy = true;
 	std::copy(msg.begin(), msg.end(), _write_buffer);
 	_sock.async_write_some(buffer(_write_buffer, msg.size()),
 		boost::bind(&ClientConnection::on_write, shared_from_this(), _1, _2));

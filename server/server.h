@@ -20,6 +20,7 @@ class Server : public boost::enable_shared_from_this<Server> {
 
 	io_service _service;
 	bool _started;
+	bool _stopped;
 	ip::tcp::acceptor _acceptor;
 	ClientsList _clients;
 	BinTree _bin_tree;

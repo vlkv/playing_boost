@@ -35,6 +35,7 @@ public:
 	bool is_stopped();
 	virtual ~ClientConnection();
 	ip::tcp::socket& sock();
+	const int id() const;
 
 private:
 	ClientConnection(boost::asio::io_service& service, boost::shared_ptr<Server> server);
