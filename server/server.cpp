@@ -12,30 +12,36 @@ Server::Server(int port, int dump_interval_sec, std::string dump_filename) :
 	_tree_dumper(boost::thread(boost::bind(&Server::dump_tree, this))) {
 }
 
-// TODO: create service_run_loop fun
 void Server::start() {
 	BOOST_LOG_TRIVIAL(info) << "Server start";
 	_started = true;
 	_stopped = false;
-	accept_client(); // TODO: exception from here?.. server would not start, we should just log about it
+	try {
+		accept_client();
+		service_run_loop();
+	}
+	catch (const std::exception &e) {
+		BOOST_LOG_TRIVIAL(error) << "Unexpected std::exception: " << e.what();
+		stop();
+	}
+	catch (...) {
+		BOOST_LOG_TRIVIAL(error) << "Unexpected unknown exception";
+		stop();
+	}
+}
+
+void Server::service_run_loop() {
 	while (!_stopped) {
 		try {
 			_service.run();
 		}
-		catch (const server_exception &e) { // TODO: test this case if it really works
+		catch (const server_exception &e) {
 			BOOST_LOG_TRIVIAL(error) << "Client id=" << e.client()->id() << " failed, reason: " << e.what();
 			e.client()->stop();
 			_clients.remove(e.client());
 		}
-		catch (const std::exception &e) {
-			BOOST_LOG_TRIVIAL(fatal) << "Unexpected std::exception: " << e.what();
-			stop();
-			break;
-		}
 		catch (...) {
-			BOOST_LOG_TRIVIAL(fatal) << "Unexpected unknown exception caugth";
-			stop();
-			break;
+			throw;
 		}
 	}
 }

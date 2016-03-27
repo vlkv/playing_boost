@@ -23,8 +23,8 @@ int Client::gen_rand_num() {
 
 void Client::start() {
 	BOOST_LOG_TRIVIAL(info) << "Client start";
+	_started = true;
 	try {
-		_started = true;
 		connect();
 		service_run_loop();
 	}
@@ -33,7 +33,7 @@ void Client::start() {
 		stop();
 	}
 	catch (...) {
-		BOOST_LOG_TRIVIAL(fatal) << "Unexpected unknown exception";
+		BOOST_LOG_TRIVIAL(error) << "Unexpected unknown exception";
 		stop();
 	}
 }

@@ -45,7 +45,8 @@ public:
 
 private:
 	void dump_tree_impl(boost::archive::binary_oarchive &oa);
-	void Server::accept_client();
+	void service_run_loop();
+	void accept_client();
 	void on_accept(ClientConnection::ptr client, const boost::system::error_code &err);
 	void stop();
 	void stop_wait_for_clients_to_stop();
