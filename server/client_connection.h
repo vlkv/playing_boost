@@ -21,8 +21,7 @@ private:
 	enum { max_msg = 1024 };
 	char _read_buffer[max_msg];
 	char _write_buffer[max_msg];
-	bool _started;
-	bool _busy;
+	bool _need_stop;
 	boost::weak_ptr<Server> _server;
 
 public:
@@ -31,8 +30,7 @@ public:
 	static ptr new_(boost::asio::io_service& service, boost::shared_ptr<Server> server);
 	void start();
 	void stop();
-	void disconnect();
-	bool is_stopped();
+	
 	virtual ~ClientConnection();
 	ip::tcp::socket& sock();
 	const int id() const;
@@ -40,7 +38,6 @@ public:
 private:
 	ClientConnection(boost::asio::io_service& service, boost::shared_ptr<Server> server);
 
-	void do_read_write();
 	void do_read();
 	void on_read(const boost::system::error_code & err, size_t bytes);
 	size_t read_complete(const boost::system::error_code & err, size_t bytes);
@@ -48,16 +45,10 @@ private:
 	void do_write(const std::string &msg);
 	void on_write(const boost::system::error_code & err, size_t bytes);
 
+	void do_write_stop();
 	void do_write_disconnected();
 	void on_write_disconnected(const boost::system::error_code & err, size_t bytes);
 
-	void do_write_stop();
-	
 	void handle_msg(const std::string &msg);
 	double process_num(int num);
-	
-	
-
-	void stop_sock_close();
-	
 };

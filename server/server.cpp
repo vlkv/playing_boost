@@ -78,9 +78,8 @@ void Server::stop() {
 
 void Server::stop_wait_for_clients_to_stop() {
 	BOOST_LOG_TRIVIAL(info) << "Waiting for clients to stop...";
-	bool all_clients_stopped = std::all_of(_clients.cbegin(), _clients.cend(), [](const ClientConnection::ptr &c) { return c->is_stopped(); });
 	// TODO: how to stop gracefully, if here we'd have an exception?
-	if (!all_clients_stopped) {
+	if (!_clients.empty()) {
 		boost::asio::deadline_timer timer(_service, boost::posix_time::milliseconds(100));
 		timer.async_wait(boost::bind(&Server::stop_wait_for_clients_to_stop, shared_from_this()));
 		return;

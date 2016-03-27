@@ -8,7 +8,7 @@
 #include <boost/thread.hpp>
 #include <boost/algorithm/string.hpp>
 
-Client::Client(std::string host, int port) : _host(host), _port(port), _sock(_service), _started(false), _busy(false), _need_disconnect(false), _gen(std::time(0)) {
+Client::Client(std::string host, int port) : _host(host), _port(port), _sock(_service), _started(false), _need_disconnect(false), _gen(std::time(0)) {
 }
 
 Client::~Client() {
@@ -74,9 +74,7 @@ void Client::send_rand_num() {
 }
 
 void Client::send_disconnect() {
-	
-	do_write_disconnect();
-	
+	_need_disconnect = true;
 }
 
 void Client::stop() {
@@ -103,7 +101,7 @@ void Client::do_write_num(const std::string& msg) {
 	}
 	BOOST_LOG_TRIVIAL(info) << "Sending to server msg: " << msg;
 	std::copy(msg.begin(), msg.end(), _write_buffer);
-	_sock.async_write_some(buffer(_write_buffer, msg.size()),
+	boost::asio::async_write(_sock, buffer(_write_buffer, msg.size()),
 		boost::bind(&Client::on_write_num, shared_from_this(), _1, _2));
 }
 
@@ -123,7 +121,7 @@ void Client::do_write_disconnect() {
 	const std::string& msg("disconnect\n");
 	BOOST_LOG_TRIVIAL(info) << "Sending to server msg: " << msg;
 	std::copy(msg.begin(), msg.end(), _write_buffer);
-	_sock.async_write_some(buffer(_write_buffer, msg.size()),
+	boost::asio::async_write(_sock, buffer(_write_buffer, msg.size()),
 		boost::bind(&Client::on_write_disconnect, shared_from_this(), _1, _2));
 }
 
@@ -156,6 +154,9 @@ size_t Client::read_complete(const boost::system::error_code & err, size_t bytes
 }
 
 void Client::on_read(const boost::system::error_code & err, size_t bytes) {	
+	if (!_started) {
+		return;
+	}
 	if (err) {
 		ostringstream oss;
 		oss << "on_read error: " << err;
@@ -163,14 +164,16 @@ void Client::on_read(const boost::system::error_code & err, size_t bytes) {
 	}
 	std::string msg(_read_buffer, bytes);
 	BOOST_LOG_TRIVIAL(info) << "Received response: " << msg;
-	handle_msg(msg);
+	if (_need_disconnect) {
+		_need_disconnect = false;
+		do_write_disconnect();
+	}
+	else {
+		handle_msg(msg);
+	}
 }
 
 void Client::handle_msg(const std::string &msg) {
-	if (!_started) {
-		return;
-	}
-	
 	std::vector<std::string> strs;
 	boost::split(strs, msg, boost::is_any_of(":\n"));
 	std::string cmd = strs[0];
