@@ -14,15 +14,13 @@ using namespace std;
 class Server;
 
 class ClientConnection : public boost::enable_shared_from_this<ClientConnection> {
-	typedef ClientConnection self_type;
-	
-private:
 	int _id;
 	static int _next_id;
 	ip::tcp::socket _sock;
 	enum { max_msg = 1024 };
 	char _read_buffer[max_msg];
 	char _write_buffer[max_msg];
+	bool _started;
 	bool _need_stop;
 	boost::weak_ptr<Server> _server;
 
@@ -33,9 +31,9 @@ public:
 	void start();
 	void stop();
 	
-	virtual ~ClientConnection();
 	ip::tcp::socket& sock();
 	const int id() const;
+	virtual ~ClientConnection();
 
 private:
 	ClientConnection(boost::asio::io_service& service, boost::shared_ptr<Server> server);

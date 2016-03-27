@@ -8,18 +8,12 @@
 #include <boost/thread.hpp>
 #include <boost/algorithm/string.hpp>
 
-Client::Client(std::string host, int port) : _host(host), _port(port), _sock(_service), _need_disconnect(false), _gen(std::time(0)) {
-}
-
-Client::~Client() {
-	BOOST_LOG_TRIVIAL(info) << "Client destruction...";
-	if (_sock.is_open()) {
-		_sock.close();
-	}
+Client::Client(std::string host, int port) : _host(host), _port(port), _sock(_service), _started(false), _need_disconnect(false), _gen(std::time(0)) {
 }
 
 void Client::start() {
 	BOOST_LOG_TRIVIAL(info) << "Client start";
+	_started = true;
 	try {
 		connect();
 		_service.run();
@@ -67,7 +61,11 @@ void Client::send_disconnect() {
 }
 
 void Client::stop() {
+	if (!_started) {
+		return;
+	}
 	BOOST_LOG_TRIVIAL(info) << "Stopping...";
+	_started = false;
 	_sock.close();
 	BOOST_LOG_TRIVIAL(info) << "Client stopped";
 }
@@ -158,4 +156,14 @@ void Client::handle_msg(const std::string &msg) {
 int Client::gen_rand_num() {
 	boost::random::uniform_int_distribution<> dist(0, 1023);
 	return dist(_gen);
+}
+
+Client::~Client() {
+	//BOOST_LOG_TRIVIAL(info) << "Client destruction...";
+	try {
+		if (_sock.is_open()) {
+			_sock.close();
+		}
+	}
+	catch (...) {}
 }

@@ -54,11 +54,6 @@ void Server::service_run_loop() {
 	}
 }
 
-Server::~Server() {
-	BOOST_LOG_TRIVIAL(info) << "Server destruction...";
-	stop();
-}
-
 void Server::stop_async() {
 	_service.dispatch(boost::bind(&Server::stop, shared_from_this()));
 }
@@ -177,7 +172,15 @@ double Server::calc_res() {
 		squares_sum += i->second.square_num();
 		++i;
 	}
-	double res = squares_sum / _bin_tree.size();
-	return res;
+	return squares_sum / _bin_tree.size();
 }
 
+Server::~Server() {
+	//BOOST_LOG_TRIVIAL(info) << "Server destruction...";
+	try {
+		if (!_stopped) {
+			stop_finish();
+		}
+	}
+	catch (...) {}
+}

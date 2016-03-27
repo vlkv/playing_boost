@@ -7,7 +7,7 @@ int ClientConnection::_next_id = 1;
 
 
 ClientConnection::ClientConnection(boost::asio::io_service& service, Server::ptr server) 
-	: _id(ClientConnection::_next_id++), _sock(service), _need_stop(false), _server(server) {
+	: _id(ClientConnection::_next_id++), _sock(service), _started(false), _need_stop(false), _server(server) {
 }
 
 ClientConnection::ptr ClientConnection::new_(boost::asio::io_service& service, Server::ptr server) {
@@ -15,20 +15,18 @@ ClientConnection::ptr ClientConnection::new_(boost::asio::io_service& service, S
 	return c;
 }
 
-ClientConnection::~ClientConnection() {
-	BOOST_LOG_TRIVIAL(info) << "ClientConnection id=" << _id << " destruction...";
-	if (_sock.is_open()) {
-		_sock.close();
-	}
-}
-
 void ClientConnection::start() {
 	BOOST_LOG_TRIVIAL(info) << "Started ClientConnection id=" << _id;
+	_started = true;
 	do_read();
 }
 
 void ClientConnection::stop() {
+	if (!_started) {
+		return;
+	}
 	BOOST_LOG_TRIVIAL(info) << "Stopping ClientConnection id=" << _id << "...";
+	_started = false;
 	_need_stop = true;
 }
 
@@ -123,4 +121,14 @@ ip::tcp::socket& ClientConnection::sock() {
 
 const int ClientConnection::id() const {
 	return _id;
+}
+
+ClientConnection::~ClientConnection() {
+	//BOOST_LOG_TRIVIAL(info) << "ClientConnection id=" << _id << " destruction...";
+	try {
+		if (_sock.is_open()) {
+			_sock.close();
+		}
+	}
+	catch (...) {}
 }

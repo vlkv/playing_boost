@@ -34,15 +34,13 @@ public:
 	typedef boost::shared_ptr<Server> ptr;
 	
 	Server(int port, int dump_interval_sec, std::string dump_filename);
-	virtual ~Server();
 	void start();
 	void stop_async();
 	void add_num(int num);
 	double calc_res();
 	void dump_tree();
+	virtual ~Server();
 	
-	
-
 private:
 	void dump_tree_impl(boost::archive::binary_oarchive &oa);
 	void service_run_loop();

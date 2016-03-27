@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
 	s->start();
 	
 	if (!s.unique()) {
-		BOOST_LOG_TRIVIAL(error) << "Memory leak! Use count=" << s.use_count();
+		BOOST_LOG_TRIVIAL(error) << "Server failed to stop correctly! Use count=" << s.use_count();
 	}
 	
 	//boost::posix_time::milliseconds wait(2000); // TODO: remove it in final version
@@ -69,7 +69,7 @@ BOOL WINAPI CtrlHandler(DWORD ctrlType) {
 	case CTRL_LOGOFF_EVENT:
 	case CTRL_SHUTDOWN_EVENT:
 		BOOST_LOG_TRIVIAL(info) << "ConsoleCtrl signal detected, " << ctrlType;
-		s_ptr->stop_async(); // It's thread safe
+		s_ptr->stop_async(); // TODO: how to avoid raw ptr here?..
 		return(TRUE);
 	default:
 		return FALSE;
