@@ -47,7 +47,10 @@ private:
 	void on_write(const boost::system::error_code & err, size_t bytes);
 	void do_write(const std::string &msg);
 	
-	double process_msg(const std::string &msg);
+	void handle_msg(const std::string &msg);
+	double process_num(int num);
+	
+	void disconnect();
 
 	void stop_sock_close();
 	

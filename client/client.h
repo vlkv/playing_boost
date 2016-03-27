@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <stack>
 #include <boost/asio/io_service.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -20,6 +21,7 @@ class Client : public boost::enable_shared_from_this<Client> {
 	char _read_buffer[max_msg];
 	char _write_buffer[max_msg];
 	bool _started;
+	bool _is_waiting_response;
 	boost::random::mt19937 _gen;
 
 public:
@@ -34,6 +36,13 @@ private:
 	void on_connect(const boost::system::error_code& err);
 	void stop();
 	
+	void disconnect_then_stop();
+	void on_write_disconnect(const boost::system::error_code& err, size_t bytes);
+
+	void stop_sock_close();
+	
+	bool is_busy();
+
 	void send_rand_num();
 	int gen_rand_num();
 
@@ -43,5 +52,7 @@ private:
 	void do_read();
 	size_t read_complete(const boost::system::error_code & err, size_t bytes);
 	void on_read(const boost::system::error_code & err, size_t bytes);
+	
+	void handle_msg(const std::string &msg);
 };
 
