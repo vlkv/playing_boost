@@ -21,12 +21,12 @@ void Server::start() {
 		service_run_loop();
 	}
 	catch (const std::exception &e) {
-		BOOST_LOG_TRIVIAL(error) << "Unexpected std::exception: " << e.what();
-		stop_finish(); // TODO: maybe call stop_finish?
+		BOOST_LOG_TRIVIAL(fatal) << "Unexpected std::exception: " << e.what();
+		stop_finish();
 	}
 	catch (...) {
-		BOOST_LOG_TRIVIAL(error) << "Unexpected unknown exception";
-		stop_finish(); // TODO: maybe call stop_finish?
+		BOOST_LOG_TRIVIAL(fatal) << "Unexpected unknown exception";
+		stop_finish();
 	}
 }
 
@@ -71,6 +71,7 @@ void Server::stop() {
 void Server::stop_wait_for_clients_to_stop() {
 	BOOST_LOG_TRIVIAL(info) << "Waiting for clients to stop...";
 	bool all_clients_stopped = std::all_of(_clients.cbegin(), _clients.cend(), [](const ClientConnection::ptr &c) { return c->is_stopped(); });
+	// TODO: how to stop gracefully, if here we'd have an exception?
 	if (!all_clients_stopped) {
 		boost::asio::deadline_timer timer(_service, boost::posix_time::milliseconds(100));
 		timer.async_wait(boost::bind(&Server::stop_wait_for_clients_to_stop, shared_from_this()));
@@ -140,7 +141,7 @@ void Server::accept_client() {
 
 void Server::on_accept(ClientConnection::ptr client, const boost::system::error_code & err) {
 	if (err.value() == boost::asio::error::operation_aborted) {
-		throw server_exception("on_accept operation_aborted", client);
+		throw server_exception("on_accept operation_aborted", client); // TODO: this should not be logged as 'error'
 	}
 	if (err) {
 		ostringstream oss;
