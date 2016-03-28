@@ -1,28 +1,28 @@
 #pragma once
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
+#include <boost/asio/ip/tcp.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <iostream>
 #include <boost/log/trivial.hpp>
 #include <boost/function.hpp>
 
-
-using namespace boost::asio;
-using namespace std;
-
 class Server;
 
 class ClientConnection : public boost::enable_shared_from_this<ClientConnection> {
 	int _id;
 	static int _next_id;
-	ip::tcp::socket _sock;
+	boost::asio::ip::tcp::socket _sock;
+	boost::weak_ptr<Server> _server;
+	
 	enum { max_msg = 1024 };
 	char _read_buffer[max_msg];
 	char _write_buffer[max_msg];
+	
 	bool _started;
 	bool _need_stop;
-	boost::weak_ptr<Server> _server;
+	
 
 public:
 	typedef boost::shared_ptr<ClientConnection> ptr;
@@ -31,7 +31,7 @@ public:
 	void start();
 	void stop();
 	
-	ip::tcp::socket& sock();
+	boost::asio::ip::tcp::socket& sock();
 	const int id() const;
 	virtual ~ClientConnection();
 

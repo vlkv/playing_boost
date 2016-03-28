@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
 	po::notify(vm);
 
 	if (vm.count("help")) {
-		cout << desc << endl;
+		std::cout << desc << std::endl;
 		return 1;
 	}
 
@@ -54,9 +54,6 @@ int main(int argc, char* argv[]) {
 		BOOST_LOG_TRIVIAL(error) << "Server failed to stop correctly! Use count=" << s.use_count();
 	}
 	
-	//boost::posix_time::milliseconds wait(2000); // TODO: remove it in final version
-	//boost::this_thread::sleep(wait);
-
 	BOOST_LOG_TRIVIAL(info) << "<<<<<< Server app is done <<<<<<";
 }
 
@@ -68,9 +65,9 @@ BOOL WINAPI CtrlHandler(DWORD ctrlType) {
 	case CTRL_BREAK_EVENT:
 	case CTRL_LOGOFF_EVENT:
 	case CTRL_SHUTDOWN_EVENT:
-		BOOST_LOG_TRIVIAL(info) << "ConsoleCtrl signal detected, " << ctrlType;
-		s_ptr->stop_async(); // TODO: how to avoid raw ptr here?..
-		return(TRUE);
+		BOOST_LOG_TRIVIAL(info) << "ConsoleCtrl event detected, " << ctrlType;
+		s_ptr->stop_async();
+		return TRUE;
 	default:
 		return FALSE;
 	}

@@ -9,7 +9,7 @@ class TreeItem {
 
 	friend class boost::serialization::access;
 	template<class Archive>
-	void serialize(Archive & ar, const unsigned int version)
+	void serialize(Archive &ar, const unsigned int version)
 	{
 		ar & _square_num;
 	}
@@ -20,6 +20,6 @@ public:
 };
 
 typedef tree_assoc_options< tree_type<avl_tree> >::type AVLTree;
-typedef boost::container::map<int, TreeItem, std::less<int>, new_allocator< std::pair< const int, TreeItem> >, AVLTree> BinTree;
+typedef map<int, TreeItem, std::less<int>, new_allocator< std::pair< const int, TreeItem> >, AVLTree> BinTree;
 
 

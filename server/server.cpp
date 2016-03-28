@@ -3,8 +3,9 @@
 #include "server_exceptions.h"
 #include <fstream>
 
+
 Server::Server(int port, int dump_interval_sec, std::string dump_filename) :
-	_acceptor(_service, ip::tcp::endpoint(ip::tcp::v4(), port)), 
+	_acceptor(_service, ip::tcp::endpoint(ip::tcp::v4(), port)),
 	_started(false),
 	_stopped(true),
 	_dump_interval_sec(dump_interval_sec),
@@ -100,13 +101,17 @@ void Server::stop_finish() {
 }
 
 void Server::dump_tree() {
+	boost::posix_time::seconds t(_dump_interval_sec);
 	while (true) {
 		try {
-			boost::posix_time::seconds dump_interval_sec(_dump_interval_sec);
-			boost::this_thread::sleep(dump_interval_sec);
+			boost::this_thread::sleep(t);
 			
 			BOOST_LOG_TRIVIAL(info) << "Tree dump started...";
 			std::fstream ofile(_dump_filename.c_str(), std::ios::binary | std::ios::out);
+			if (!ofile.is_open()) {
+				BOOST_LOG_TRIVIAL(info) << "Tree dump failed, reason: could not open file " << _dump_filename << " for writing";
+				continue;
+			}
 			boost::archive::binary_oarchive oa(ofile);
 			dump_tree_impl(oa);
 			ofile.close();
@@ -149,7 +154,7 @@ void Server::on_accept(ClientConnection::ptr client, const boost::system::error_
 		throw accept_aborted_exception(client);
 	}
 	if (err) {
-		ostringstream oss;
+		std::ostringstream oss;
 		oss << "on_accept error: " << err;
 		throw server_exception(oss.str(), client);
 	}
@@ -176,8 +181,11 @@ double Server::calc_res() {
 }
 
 Server::~Server() {
-	//BOOST_LOG_TRIVIAL(info) << "Server destruction...";
 	try {
+		BOOST_LOG_TRIVIAL(info) << "Server destruction...";
+		if (_acceptor.is_open()) {
+			_acceptor.close();
+		}
 		if (!_stopped) {
 			stop_finish();
 		}

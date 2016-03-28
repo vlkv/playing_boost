@@ -1,11 +1,10 @@
 #pragma once
 #include "client_connection.h"
-#include <boost/asio/io_service.hpp>
-#include <boost/asio/ip/tcp.hpp>
+#include "tree_item.h"
+#include <list>
+#include <boost/asio.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/make_shared.hpp>
-#include <list>
-#include "tree_item.h"
 #include <boost/thread/thread.hpp>
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/locks.hpp>
@@ -13,15 +12,14 @@
 #include <boost/log/trivial.hpp>
 
 using namespace boost::asio;
-using namespace std;
 
 class Server : public boost::enable_shared_from_this<Server> {
 	typedef std::list<ClientConnection::ptr> ClientsList;
 
-	io_service _service;
+	boost::asio::io_service _service;
 	bool _started;
 	bool _stopped;
-	ip::tcp::acceptor _acceptor;
+	boost::asio::ip::tcp::acceptor _acceptor;
 	ClientsList _clients;
 	BinTree _bin_tree;
 	boost::thread _tree_dumper;

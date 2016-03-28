@@ -1,9 +1,7 @@
 #pragma once
 #include <string>
-#include <stack>
 #include <boost/asio/io_service.hpp>
 #include <boost/enable_shared_from_this.hpp>
-#include <boost/asio/ip/tcp.hpp>
 #include <boost/asio.hpp>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
@@ -11,13 +9,13 @@
 #include <boost/function.hpp>
 
 using namespace boost::asio;
-using namespace std;
 
 class Client : public boost::enable_shared_from_this<Client> {
-	boost::asio::io_service _service;
 	std::string _host;
 	int _port;
-	ip::tcp::socket _sock;
+	boost::asio::io_service _service;
+	boost::asio::ip::tcp::socket _sock;
+	
 	enum { max_msg = 1024 };
 	char _read_buffer[max_msg];
 	char _write_buffer[max_msg];

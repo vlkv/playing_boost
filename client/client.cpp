@@ -8,7 +8,8 @@
 #include <boost/thread.hpp>
 #include <boost/algorithm/string.hpp>
 
-Client::Client(std::string host, int port) : _host(host), _port(port), _sock(_service), _started(false), _need_disconnect(false), _gen(std::time(0)) {
+Client::Client(std::string host, int port) : _host(host), _port(port), _sock(_service),
+	_started(false), _need_disconnect(false), _gen(std::time(0)) {
 }
 
 void Client::start() {
@@ -32,7 +33,7 @@ void Client::connect() {
 	boost::system::error_code err;
 	ip::address addr = ip::address::from_string(_host, err);
 	if (err) {
-		ostringstream oss;
+		std::ostringstream oss;
 		oss << "Bad host " << _host << ", reason:" << err;
 		throw client_exception(oss.str());
 	}
@@ -42,7 +43,7 @@ void Client::connect() {
 
 void Client::on_connect(const boost::system::error_code& err) {
 	if (err) {
-		ostringstream oss;
+		std::ostringstream oss;
 		oss << "on_connect error: " << err;
 		throw client_exception(oss.str());
 	}
@@ -52,7 +53,7 @@ void Client::on_connect(const boost::system::error_code& err) {
 
 void Client::send_rand_num() {
 	int rand_num = gen_rand_num();
-	string str = std::to_string(rand_num);
+	std::string str = std::to_string(rand_num);
 	do_write("num:" + str + "\n", boost::bind(&Client::on_write_num, shared_from_this(), _1, _2));
 }
 
@@ -82,7 +83,7 @@ void Client::do_write(const std::string &msg, OnWriteHandler on_write_handler) {
 
 void Client::on_write_num(const boost::system::error_code& err, size_t bytes) {
 	if (err) {
-		ostringstream oss;
+		std::ostringstream oss;
 		oss << "on_write error: " << err;
 		throw client_exception(oss.str());
 	}
@@ -91,7 +92,7 @@ void Client::on_write_num(const boost::system::error_code& err, size_t bytes) {
 
 void Client::on_write_disconnect(const boost::system::error_code& err, size_t bytes) {
 	if (err) {
-		ostringstream oss;
+		std::ostringstream oss;
 		oss << "on_write error: " << err;
 		throw client_exception(oss.str());
 	}
@@ -116,7 +117,7 @@ size_t Client::read_complete(const boost::system::error_code & err, size_t bytes
 
 void Client::on_read(const boost::system::error_code & err, size_t bytes) {	
 	if (err) {
-		ostringstream oss;
+		std::ostringstream oss;
 		oss << "on_read error: " << err;
 		throw client_exception(oss.str());
 	}
@@ -147,7 +148,7 @@ void Client::handle_msg(const std::string &msg) {
 		stop();
 	}
 	else {
-		ostringstream oss;
+		std::ostringstream oss;
 		oss << "Unexpected msg from server: " << msg;
 		throw client_exception(oss.str());
 	}
@@ -159,10 +160,13 @@ int Client::gen_rand_num() {
 }
 
 Client::~Client() {
-	//BOOST_LOG_TRIVIAL(info) << "Client destruction...";
 	try {
+		BOOST_LOG_TRIVIAL(info) << "Client destruction...";
 		if (_sock.is_open()) {
 			_sock.close();
+		}
+		if (!_service.stopped()) {
+			_service.stop();
 		}
 	}
 	catch (...) {}

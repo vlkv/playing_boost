@@ -7,10 +7,10 @@ int ClientConnection::_next_id = 1;
 
 
 ClientConnection::ClientConnection(boost::asio::io_service& service, Server::ptr server) 
-	: _id(ClientConnection::_next_id++), _sock(service), _started(false), _need_stop(false), _server(server) {
+	: _id(ClientConnection::_next_id++), _sock(service), _server(server), _started(false), _need_stop(false) {
 }
 
-ClientConnection::ptr ClientConnection::new_(boost::asio::io_service& service, Server::ptr server) {
+ClientConnection::ptr ClientConnection::new_(boost::asio::io_service& service, boost::shared_ptr<Server> server) {
 	ptr c(new ClientConnection(service, server));
 	return c;
 }
@@ -77,7 +77,7 @@ void ClientConnection::handle_msg(const std::string &msg) {
 		do_write("disconnected\n", boost::bind(&ClientConnection::on_write_disconnected, shared_from_this(), _1, _2));
 	}
 	else {
-		ostringstream oss;
+		std::ostringstream oss;
 		oss << "Unexpected msg from client: " << msg;
 		throw server_exception(oss.str(), shared_from_this());
 	}
@@ -98,7 +98,7 @@ void ClientConnection::do_write(const std::string &msg, OnWriteHandler on_write_
 
 void ClientConnection::on_write_ok(const boost::system::error_code & err, size_t bytes) {
 	if (err) {
-		ostringstream oss;
+		std::ostringstream oss;
 		oss << "on_write error: " << err << " client id=" << _id;
 		throw server_exception(oss.str(), shared_from_this());
 	}
@@ -107,7 +107,7 @@ void ClientConnection::on_write_ok(const boost::system::error_code & err, size_t
 
 void ClientConnection::on_write_disconnected(const boost::system::error_code & err, size_t bytes) {
 	if (err) {
-		ostringstream oss;
+		std::ostringstream oss;
 		oss << "on_write_disconnected error: " << err << " client id=" << _id;
 		throw server_exception(oss.str(), shared_from_this());
 	}
@@ -124,8 +124,8 @@ const int ClientConnection::id() const {
 }
 
 ClientConnection::~ClientConnection() {
-	//BOOST_LOG_TRIVIAL(info) << "ClientConnection id=" << _id << " destruction...";
 	try {
+		BOOST_LOG_TRIVIAL(info) << "ClientConnection id=" << _id << " destruction...";
 		if (_sock.is_open()) {
 			_sock.close();
 		}
